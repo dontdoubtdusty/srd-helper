@@ -39,6 +39,7 @@ On old.reddit.com every thread gets the full panel at the right edge. On new red
 ### The panel (old reddit)
 - **Popcornometer:** the thread's drama rating, as a percentage and a verdict. See the Tags and the meter page.
 - **Thread:** how many comments are loaded, how many are negative, how many hot spots were found and the best one.
+- **Drama mode:** Reopen in drama mode opens the same thread in a new tab, sorted by controversial with up to 500 comments loaded. When the page already is in drama mode, the button turns green and says so.
 - **To load:** a read-only list of the "load more comments" buttons still on the page, the ones worth pressing first. A button is worth pressing when the replies it hides sit under a comment that is already a fight: a negative, controversial or heated comment, one with three or more people or three or more levels below it, or one inside a hot spot. Each row says why. The worthwhile buttons (worth 12 or more, at least 3 replies; `loadMoreWorth` at the top of the userscript) are lit up in bright yellow and pink on the page. The panel never scrolls or clicks for you; find the lit button and press it yourself, then press Refresh.
 - **Refresh:** read the page again (it also happens by itself when the page changes).
 - **Expand all:** opens collapsed comments so they can be read. It only clicks when you press it, once per collapsed comment, and it never presses "load more".
