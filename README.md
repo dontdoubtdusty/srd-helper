@@ -25,5 +25,6 @@ exception is Expand all on old.reddit, which clicks collapsed comments once when
 | `calibrate.js` | `node calibrate.js <thread.srd.json> <saved post .htm or app .labels.json>`: where the comments you linked rank under the current drama score. |
 | `brainstorm.md` | Decisions, rules and history. |
 | `examples/`, `mockups/` | Reference material. |
+| `srd-desk/` | SRD Desk, the Windows app that opens the exported threads (C# .NET 10). See `srd-desk/README.md`. |
 
-The full guide (both halves, with pictures) is in the SRD Desk app: `../srd-desk/resources/guide/GUIDE.md`, or F1 in the app.
+The full guide (both halves, with pictures) is in the SRD Desk app: `srd-desk/resources/guide/GUIDE.md`, or F1 in the app.
