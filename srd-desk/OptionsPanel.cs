@@ -58,6 +58,13 @@ public static class OptionsPanel
         ImGui.TextUnformatted("The longest chain that + chain and Add all chains build from a head comment. The Chains table in the console still shows the levels the userscript found.");
         ImGui.PopTextWrapPos();
         ImGui.PopStyleColor();
+        bool ctx = s.ChainContext;
+        if (ImGui.Checkbox("Show what the chain replies to", ref ctx)) { s.ChainContext = ctx; s.Save(); }
+        ImGui.PushStyleColor(ImGuiCol.Text, Theme.Mut);
+        ImGui.PushTextWrapPos(ImGui.GetWindowWidth() - 24f);
+        ImGui.TextUnformatted("When a chain starts on a reply, the comment above it is quoted first (plain, no link) so readers know what started the fight. Applies to chains added from now on.");
+        ImGui.PopTextWrapPos();
+        ImGui.PopStyleColor();
 
         // Where drafts are kept.
         ImGui.Dummy(new Vector2(0, 6));

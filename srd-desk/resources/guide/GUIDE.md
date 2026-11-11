@@ -80,7 +80,7 @@ Hover a comment to see its controls.
 
 - **+ chain:** adds the main line of replies starting at this comment as one chain. The main line follows the reply with the deepest branch at each level, up to the chain length limit (6 normally; you can change it in Options).
 - **pick:** ticks the comment. Then press Add picked in the draft panel to add all ticked comments as one chain, in thread order.
-- **link:** makes that quote a link to the comment on Reddit too. The last quote of a chain is always the link (it is usually the punchline); tick link on any other quote you also want linked. Linking also ticks pick.
+- **link:** makes that quote a link to the comment on Reddit too. If you tick link on no quote, the last quote of the chain becomes the link (it is usually the punchline); if you tick link on any quote, only the ticked ones are linked. Linking also ticks pick.
 - **reddit:** opens the comment on Reddit in your browser.
 
 Press Add all hot spots in the draft panel to add every hot spot that is not in the draft yet, best first (in older files without drama scores the button says Add all chains and uses the chains). A chain whose first comment is already in the draft is skipped.
@@ -105,7 +105,8 @@ The copied text is the standard SRD layout.
 ![The Source tab: the exact markdown that Copy produces.](source.png)
 
 - Each quote is a Reddit quote line. The first comment of a chain starts with `>`, a reply to it with `>>`, a reply to that with `>>>`, and so on. A `>` on its own line separates quotes.
-- The last quote of a chain is the link. A linked quote is one line: the whole comment text becomes the link text, `[the comment](https://www.reddit.com/...)`. Paragraphs of a linked comment are joined into one.
+- When a chain starts on a reply, the comment it replies to is quoted first, plain and without a link, so readers know what started it. The preview shows it grayed with a "replying to" chip. It does not count as used. Turn it off in Options.
+- The last quote of a chain is the link, unless you ticked link on another quote in it. A linked quote is one line: the whole comment text becomes the link text, `[the comment](https://www.reddit.com/...)`. Paragraphs of a linked comment are joined into one.
 - An unlinked quote keeps its paragraphs, each on its own quote line.
 - Chains are separated by a line with a single `*`, an empty bullet. That keeps each chain a separate block on Reddit.
 - A header is a plain line, `Giant drama thread #1:`, with a blank line around it, or a bold one, `**Like this**`, if you chose bold.
@@ -178,7 +179,7 @@ Open Options from the top bar. Changes apply at once and are saved.
 
 - **Colors:** four schemes. Dusk is the default dark one; Mist, Paper and Sage are light.
 - **Text size:** Small, Default, Large or Extra large.
-- **Chains:** the longest chain that + chain and Add all chains will build. By default it uses the limit stored in each thread file, normally 6. The Chains table in the console is unaffected, since the userscript works it out.
+- **Chains:** the longest chain that + chain and Add all chains will build. By default it uses the limit stored in each thread file, normally 6. The Chains table in the console is unaffected, since the userscript works it out. **Show what the chain replies to** (on by default) puts the parent comment on top of chains that start on a reply.
 - **Saved data:** where drafts, presets and the template are kept (`%AppData%\SrdDesk`), with a button to open the folder.
 
 ![The four color schemes.](themes.png)

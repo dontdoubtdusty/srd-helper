@@ -12,6 +12,8 @@ public class Who
     public string T { get; set; } = "";
     public string U { get; set; } = "";
     public bool K { get; set; }
+    // True for the comment the chain replies to: shown grayed as context, not counted as quoted.
+    public bool C { get; set; }
 }
 
 // One piece of the post: a chain, a free text note, or a header (a line that starts a group of chains; plain or bold).
@@ -155,7 +157,7 @@ public class Draft
         used = new HashSet<string>(StringComparer.Ordinal);
         foreach (Block b in Blocks)
         {
-            if (b.Who != null) foreach (Who w in b.Who) if (!string.IsNullOrEmpty(w.U)) used.Add(w.U);
+            if (b.Who != null) foreach (Who w in b.Who) if (!w.C && !string.IsNullOrEmpty(w.U)) used.Add(w.U);
             foreach (System.Text.RegularExpressions.Match m in LinkRe.Matches(b.Md)) used.Add(m.Groups[1].Value);
         }
         usedAt = Changes;
@@ -170,16 +172,23 @@ public class Draft
         return set;
     }
 
-    // Add a chain made of the given comments. The last quote carries the link (the punchline of the exchange);
-    // the others are plain unless ticked in linked. Returns a message for the status line.
-    public string AddChain(ThreadData data, List<Node> nodes, HashSet<int> linked)
+    // Add a chain made of the given comments. Quotes ticked in linked carry a link; when none in the chain is
+    // ticked, the last quote gets it (the punchline of the exchange). When context is on and the first comment is a reply, the
+    // comment it replies to goes on top as a plain quote so readers know what the fight is about.
+    // Returns a message for the status line.
+    public string AddChain(ThreadData data, List<Node> nodes, HashSet<int> linked, bool context = true)
     {
         if (nodes.Count == 0 || string.IsNullOrEmpty(nodes[0].Text)) return "Nothing to add";
         if (ContainsComment(nodes[0].Link)) return "Already in the draft";
-        var items = nodes.Select((n, i) => new ChainItem(data.DepthOf[n.Id], n.Text, n.Link, i == nodes.Count - 1 || linked.Contains(n.Id))).ToList();
+        Node? parent = context ? data.ParentOf.GetValueOrDefault(nodes[0].Id) : null;
+        if (parent != null && string.IsNullOrEmpty(parent.Text)) parent = null;
+        var all = parent != null ? nodes.Prepend(parent).ToList() : nodes;
+        // The last quote is the link only when no other quote in this chain was ticked as a link.
+        bool anyTicked = nodes.Any(n => linked.Contains(n.Id));
+        var items = all.Select((n, i) => new ChainItem(data.DepthOf[n.Id], n.Text, n.Link, n != parent && (linked.Contains(n.Id) || (!anyTicked && i == all.Count - 1)))).ToList();
         int minDepth = items.Min(i => i.Depth);
         string md = ChainBuilder.Build(items);
-        var who = nodes.Select((n, i) => new Who { A = n.Author, Op = n.Op, S = n.Score, L = items[i].Depth - minDepth + 1, T = n.Text, U = n.Link, K = items[i].Linked }).ToList();
+        var who = all.Select((n, i) => new Who { A = n.Author, Op = n.Op, S = n.Score, L = items[i].Depth - minDepth + 1, T = n.Text, U = n.Link, K = items[i].Linked, C = n == parent }).ToList();
         Checkpoint();
         Blocks.Add(new Block { Kind = "chain", Md = md, Built = md, Who = who });
         Save();
@@ -270,6 +279,8 @@ public class AppSettings
     public string TextSize { get; set; } = "Default";
     // Longest chain added by + chain and Add all chains; 0 means use the value stored in the thread file.
     public int ChainLimit { get; set; } = 0;
+    // Put the comment a chain replies to on top of the chain, so readers see what started it.
+    public bool ChainContext { get; set; } = true;
 
     private static string FilePath => Path.Combine(Draft.DataFolder, "settings.json");
 

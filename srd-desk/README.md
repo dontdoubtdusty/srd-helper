@@ -13,7 +13,7 @@ The full guide (with screenshots, and Poppy) is `resources/guide/GUIDE.md`. In t
 ## Use
 1. On an old.reddit thread, press **Export for app** in the SRD Helper panel. A `srd-<id>.srd.json` file downloads.
 2. Open it in SRD Desk: drag it onto the window, press **Open file...**, or pass it on the command line.
-3. Add chains (**Add chain** on a row of the Hot spots tab, `+ chain` on a comment, tick `pick` / `link` then **Add picked**, or **Add all hot spots**), reorder and edit in the draft, press **Copy**. The last quote of each chain is the link.
+3. Add chains (**Add chain** on a row of the Hot spots tab, `+ chain` on a comment, tick `pick` / `link` then **Add picked**, or **Add all hot spots**), reorder and edit in the draft, press **Copy**. The last quote of each chain is the link unless you ticked `link` on another quote in it; a chain that starts on a reply gets the comment it replies to on top as plain context.
 4. Headers: press **Header** to add a header line (plain by default) at the end of the draft, then add the chains that belong under it. The popup offers the numbered headers `Giant drama thread #N:` and `Subthread N:`, presets (click to add, `B` for bold, `x` to remove), a custom box (typed headers are remembered as presets), and the template.
 5. Made a mistake? **Undo** and **Redo** (above the draft) or Alt+Z and Alt+Shift+Z step back and forward through draft changes.
 6. **Copy** also writes `drafts\<thread id>.labels.json` (the comments the post uses, with their drama scores) for `../calibrate.js`.

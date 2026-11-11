@@ -291,6 +291,12 @@ public static class DraftPanel
             float indent = (w.L - 1) * 14f;
             Vector2 top = new Vector2(left + indent, ImGui.GetCursorScreenPos().Y);
             ImGui.SetCursorScreenPos(new Vector2(left + indent + 12f, top.Y));
+            if (w.C)
+            {
+                // The comment the chain replies to: muted, so the fight itself stands out.
+                Ui.Chip("replying to", Theme.Mut);
+                ImGui.SameLine(0, 8);
+            }
             Ui.Uname(w.A);
             if (w.Op) { ImGui.SameLine(0, 6); Ui.OpChip(); }
             ImGui.SameLine(0, 8);
@@ -298,9 +304,9 @@ public static class DraftPanel
             if (w.K) { ImGui.SameLine(0, 8); Ui.Chip("link", Theme.Acc); }
             ImGui.SetCursorScreenPos(new Vector2(left + indent + 12f, ImGui.GetCursorScreenPos().Y));
             float wrap = Math.Max(100f, width - indent - 14f);
-            Ui.Body(w.T, wrap, 0, w.K ? Theme.Acc : Theme.Tx);
+            Ui.Body(w.T, wrap, 0, w.C ? Theme.Mut : w.K ? Theme.Acc : Theme.Tx);
             float bottom = ImGui.GetCursorScreenPos().Y;
-            dl.AddRectFilled(new Vector2(top.X, top.Y + 2f), new Vector2(top.X + 3f, bottom - 2f), Theme.U(bars[Math.Min(w.L, 3) - 1]), 1.5f);
+            dl.AddRectFilled(new Vector2(top.X, top.Y + 2f), new Vector2(top.X + 3f, bottom - 2f), Theme.U(w.C ? Theme.Mut : bars[Math.Min(w.L, 3) - 1]), 1.5f);
             ImGui.SetCursorScreenPos(new Vector2(left, bottom + 6f));
         }
     }

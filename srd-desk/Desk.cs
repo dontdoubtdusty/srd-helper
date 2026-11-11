@@ -91,7 +91,7 @@ public class Desk
     public void AddChainFrom(Node head)
     {
         if (Data == null) return;
-        SetStatus(Draft.AddChain(Data, ThreadData.MainPath(head, ChainLimit), Linked));
+        SetStatus(Draft.AddChain(Data, ThreadData.MainPath(head, ChainLimit), Linked, Settings.ChainContext));
     }
 
     // The ticked comments as one chain, in thread order (ids are numbered in reading order).
@@ -100,7 +100,7 @@ public class Desk
         if (Data == null) return;
         var nodes = Picked.OrderBy(i => i).Where(Data.ById.ContainsKey).Select(i => Data.ById[i]).ToList();
         if (nodes.Count == 0) { SetStatus("Nothing ticked"); return; }
-        SetStatus(Draft.AddChain(Data, nodes, Linked));
+        SetStatus(Draft.AddChain(Data, nodes, Linked, Settings.ChainContext));
         Picked.Clear();
         Linked.Clear();
     }
@@ -114,7 +114,7 @@ public class Desk
         foreach (Node n in heads)
         {
             if (Draft.ContainsComment(n.Link)) continue;
-            if (Draft.AddChain(Data, ThreadData.MainPath(n, ChainLimit), new HashSet<int>()) == "Chain added") added++;
+            if (Draft.AddChain(Data, ThreadData.MainPath(n, ChainLimit), new HashSet<int>(), Settings.ChainContext) == "Chain added") added++;
         }
         SetStatus(added > 0 ? "Added " + added + " chains" : "No new chains");
     }
