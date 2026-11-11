@@ -64,6 +64,8 @@ public class MeterInfo
     public bool Plus { get; set; }
     public string Text { get; set; } = "";
     public string Tier { get; set; } = "none";
+    // What the percentage is made of (userscript 0.5 and later): "27% back-and-forth · ... · old 82%". Empty in older files.
+    public string Why { get; set; } = "";
 }
 
 public class StripItem

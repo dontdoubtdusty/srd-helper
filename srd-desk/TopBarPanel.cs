@@ -31,8 +31,9 @@ public static class TopBarPanel
         ThreadData? data = d.Data;
         if (data?.Meter != null)
         {
-            string pct = data.Meter.Pct.HasValue ? Math.Round(data.Meter.Pct.Value) + "%" + (data.Meter.Plus ? "+" : "") + " " : "";
+            string pct = data.Meter.Pct.HasValue ? Math.Round(data.Meter.Pct.Value) + "% " : "";
             Ui.Chip(pct + data.Meter.Text, Ui.TierColor(data.Meter.Tier));
+            if (ImGui.IsItemHovered() && data.Meter.Why.Length > 0) ImGui.SetTooltip(data.Meter.Why + (data.Meter.Plus ? "\nNot every comment was loaded when this was exported." : ""));
             ImGui.SameLine(0, 14);
         }
 

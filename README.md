@@ -4,7 +4,7 @@ A userscript that helps find and write up Reddit drama for SubredditDrama-style 
 already have open (no API, no background requests) and never clicks, scrolls or loads anything for you. The one
 exception is Expand all on old.reddit, which clicks collapsed comments once when you press it.
 
-- **old.reddit.com:** the Popcornometer panel. Drama score for the thread, hot spots marked on the page, a list of the
+- **old.reddit.com:** the Popcornometer panel. A drama percentage for the thread (how much of it is fighting: back-and-forth replies, downvotes on both sides, controversial and removed comments, as shares of the loaded comments), hot spots marked on the page, a list of the
   "load more" buttons worth pressing (lit up for you to press), Expand all, and Export for app (the whole loaded
   thread, scored, as a `.srd.json` file for the SRD Desk app).
 - **new reddit:** a small readout with an estimate, and a button that opens the same thread on old.reddit sorted by
@@ -21,8 +21,9 @@ exception is Expand all on old.reddit, which clicks collapsed comments once when
 ## Files
 | File | Job |
 |---|---|
-| `srd-helper.user.js` | The userscript. Settings (`CONFIG`) and the drama weights (`DRAMA`) are at the top. |
-| `calibrate.js` | `node calibrate.js <thread.srd.json> <saved post .htm or app .labels.json>`: where the comments you linked rank under the current drama score. |
+| `srd-helper.user.js` | The userscript. Settings (`CONFIG`), the meter weights (`METER`) and the hot-spot weights (`DRAMA`) are at the top. |
+| `measure.js` | `node measure.js <exports...>`: scores threads labelled drama or calm in `examples/labels.json` and prints how well the meter separates them (AUC), next to the old meter. Run it after changing `METER`. |
+| `calibrate.js` | `node calibrate.js <thread.srd.json> <saved post .htm or app .labels.json>`: where the comments you linked rank under the current hot-spot scores. |
 | `brainstorm.md` | Decisions, rules and history. |
 | `examples/`, `mockups/` | Reference material. |
 | `srd-desk/` | SRD Desk, the Windows app that opens the exported threads (C# .NET 10). See `srd-desk/README.md`. |
