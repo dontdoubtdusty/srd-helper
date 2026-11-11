@@ -207,6 +207,8 @@ public sealed class DeskApp
                 case "alltrees": desk.HotTreesOnly = false; break;
                 case "labels": desk.SaveLabels(); break;
                 case "text": { Block b = desk.Draft.AddText(); b.Md = "A note of my own."; break; }
+                case "skiptree": desk.ToggleTreeSkip(n); break;
+                case "skiphot": if (n < (desk.Data?.HotRows.Count ?? 0)) desk.Draft.ToggleSkip(desk.Data!.HotRows[n].Link); break;
                 // trimopen:block:quote opens trim mode; cut:block:quote:sentence cuts one sentence.
                 case "trimopen": { int.TryParse(parts.Length > 2 ? parts[2] : "", out int q); if (n < desk.Draft.Blocks.Count) desk.Trimming.Add(desk.Draft.Blocks[n].Id + ":" + q); break; }
                 case "cut":

@@ -68,9 +68,9 @@ Drag a `.srd.json` file onto the window, press Open file..., or pass it on the c
 ![The bottom console: tabs for chains, crowd magnets, duels, OP and heated comments.](console.png)
 
 - **Top bar:** Poppy, the meter result, the thread title (hover it to see the whole title), a status message, Open file..., Original thread, Guide and Options.
-- **Trees (left):** HOT lists the trees that hold a hot spot, best first; ALL lists every tree in thread order (a whole thread can have hundreds). Each card shows the top commenter, their score, the best hot spot in it, the size and the number of people. Click a card to open it.
+- **Trees (left):** HOT lists the trees that hold a hot spot, best first; ALL lists every tree in thread order (a whole thread can have hundreds). Each card shows the top commenter, their score, the best hot spot in it, the size and the number of people. Click a card to open it. Hover a card for skip: a tree you decided not to use stays where it is, faded, with "skipped" in place of its score (hover again for unskip). Skip tree above the thread does the same.
 - **Thread (middle):** the selected tree, nested. The arrow folds a comment. Usernames are colored badges, the same color for the same person everywhere. Scores are small, and red when negative. A hot spot starts with a HOT chip and a colored edge (red for the top three). A comment that is already in your draft shows a green "used" chip.
-- **Console (bottom):** tables of what was found. Hot spots comes first: rank, who started it, the drama score and what it is made of. Each row has a jump button that scrolls the thread to that comment, and Add chain (or "in draft" once it is there).
+- **Console (bottom):** tables of what was found. Hot spots comes first: rank, who started it, the drama score and what it is made of. Each row has a jump button that scrolls the thread to that comment, and Add chain (or "in draft" once it is there), and skip for a hot spot you looked at and decided against. Skipped rows are faded in place; the hot spots of a skipped tree say "tree skipped" (unskip the tree to bring them back). Add all hot spots leaves skipped ones out. Skips are saved with the draft and Undo covers them.
 - **Draft (right):** your post in the making.
 
 ### Picking comments
@@ -138,7 +138,7 @@ A chain is the older, stricter rule, still shown in its own tab: a negative comm
 - **OP:** the comment is by the original poster. The OP tab lists their comments.
 
 ### The meter
-The Popcornometer adds up the drama scores of the hot spots and turns the total into a rating, so you can tell at a glance if a thread is worth it. It rises quickly at first and levels off near 100%, so one huge thread cannot run away with it.
+The Popcornometer rates how much of the thread is fighting, not how big it is. It looks at four things, each as a share of the loaded comments: back-and-forth (someone answers the person who answered them), both downvoted (a downvoted reply to a downvoted comment), controversial (marked by Reddit) and removed (only removals inside an argument count, so strict subs that remove lone answers do not look dramatic). Small threads are pulled toward a calm reading, so a handful of comments cannot reach the top. Hover the meter in the top bar to see the four shares and the old meter's reading for comparison (threads exported with userscript 0.5 or later).
 
 | Rating | Verdict |
 |---|---|
@@ -146,29 +146,10 @@ The Popcornometer adds up the drama scores of the hot spots and turns the total 
 | 50% to 84% | Promising |
 | 85% to 100% | DRAMA-FILLED |
 
-It was set so the example threads land where they felt right (the PCM rules thread and the antiwork thread in the 90s, the Chappelle thread around 80% from its partial export). The rating is only given when the thread can be judged: at least 20 comments loaded, and most scores visible. A percentage with a plus sign, such as 55%+, means more comments are still unloaded, so it can only go up. On new reddit it is always an estimate.
-
-## Tips
-### Mouse
-- Click the arrow next to a comment to fold it. Fold replies and Unfold all (above the thread) do it for the whole tree.
-- Click show more under a long comment to read all of it, and show less to shorten it again.
-- Hover the row of a comment to see pick, link, + chain and reddit.
-- The jump buttons in the console scroll the thread to a comment and flash its row.
-- Drag a thread file onto the window to open it.
-
-### Keyboard
-- F1 opens and closes this guide.
-- Alt+Z undoes the last change to the draft, Alt+Shift+Z redoes it. It is ignored while you type in a text box.
-- Click outside the Header menu to close it. Options has a Close button.
-- In the Custom header box, Enter adds the header.
-
-### Habits that help
-- Add the header first, then its chains, so the order in the draft is already right.
-- Use Add all hot spots early, then delete the chains you do not want. It is quicker than adding one by one.
-- Start from new reddit? Press Open in old reddit in the readout, then Expand all and the lit-up load more buttons before you export.
+It was set on threads labelled by hand: 7 that made SRD posts and 15 busy ones that did not. The rating is only given when the thread can be judged: at least 20 comments loaded, and most scores visible. Fresh threads read low at first, because votes and controversial marks build up over hours. On new reddit it is always an estimate.
 
 ### Teaching the drama score
-Every time you press Copy, the app writes which comments the post links next to the draft. `calibrate.js` in the userscript folder compares those (or a finished post saved from your browser) with the drama scores and reports how many of your picks were inside a hot spot and how high they ranked. Run it after changing the weights in `DRAMA` to see whether a change helps:
+Every time you press Copy, the app writes which comments the post links next to the draft. `calibrate.js` in the userscript folder compares those (or a finished post saved from your browser) with the drama scores and reports how many of your picks were inside a hot spot and how high they ranked. Hot spots you skipped are listed too, with where the model ranks them now: a skipped spot near the top is one the drama score overrates. Run it after changing the weights in `DRAMA` to see whether a change helps:
 
 `node calibrate.js srd-abc123.srd.json drafts\abc123.labels.json`
 - Edit a chain only when you must. Hand edits turn off the usernames in the preview for that card. To shorten a quote, use trim instead.

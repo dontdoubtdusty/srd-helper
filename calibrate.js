@@ -3,7 +3,7 @@
 //   node calibrate.js <thread.srd.json> <post.htm | thread.labels.json> [more pairs...] [--top N]
 //
 // For each pair: the exported thread from the userscript, and either a saved SRD post (the page saved from your
-// browser) or the labels file SRD Desk writes when you mark comments as used. It re-scores the thread with the
+// browser) or the labels file SRD Desk writes when you mark comments as used (which also lists the hot spots you skipped). It re-scores the thread with the
 // current settings in srd-helper.user.js (so you can change DRAMA there and run again), then reports where the
 // comments you actually linked landed: inside a hot spot or not, and how high they rank.
 // Old exports (version 1) hold only the trees with chains, so most links will be "not in export" for those.
@@ -42,7 +42,13 @@ function linkedIds(file, threadId) {
   return ids;
 }
 
-let total = { linked: 0, present: 0, inSpot: 0, inTop: 0 };
+// The hot spots you skipped in SRD Desk (labels files only): ids of their head comments.
+function skippedIds(file) {
+  if (!/\.json$/i.test(file)) return [];
+  return (JSON.parse(fs.readFileSync(file, 'utf8')).skipped || []).map(s => idOf(s.link)).filter(Boolean);
+}
+
+let total = { linked: 0, present: 0, inSpot: 0, inTop: 0, skipped: 0, skippedTop: 0 };
 for (let f = 0; f < files.length; f += 2) {
   const thread = JSON.parse(fs.readFileSync(files[f], 'utf8'));
   const threadId = (thread.threadUrl.match(/comments\/([a-z0-9]+)/i) || [])[1];
@@ -70,10 +76,18 @@ for (let f = 0; f < files.length; f += 2) {
       ', ' + (s ? 'in hot spot #' + s.hot : 'outside the hot spots') + (n.kids.length ? '' : ', no replies (end of a chain)') + ', score ' + n.score);
   });
   console.log('   found: ' + present + ' of ' + ids.size + ' in the file; ' + inSpot + ' inside a hot spot; ' + inTop + ' inside the top ' + topN);
+  // Skipped spots: where the model ranks the disputes you looked at and decided against. High ranks mean it overrates them.
+  const skipped = skippedIds(files[f + 1]);
+  if (skipped.length) {
+    let top = 0;
+    const ranks = skipped.map(id => { const n = byId.get(id); if (n && n.hot && n.hot <= topN) top++; return n ? (n.hot ? '#' + n.hot : 'not a spot now') : 'not in export'; });
+    console.log('   skipped ' + skipped.length + ' hot spots, now ranked: ' + ranks.join(', ') + '; ' + top + ' inside the top ' + topN);
+    total.skipped += skipped.length; total.skippedTop += top;
+  }
   total.linked += ids.size; total.present += present; total.inSpot += inSpot; total.inTop += inTop;
 }
 if (files.length > 2) {
   console.log('\n== All threads: ' + total.present + ' of ' + total.linked + ' linked comments in the files; ' +
     total.inSpot + ' inside a hot spot (' + (total.present ? Math.round(100 * total.inSpot / total.present) : 0) + '%); ' +
-    total.inTop + ' inside the top ' + topN + '.');
+    total.inTop + ' inside the top ' + topN + '.' + (total.skipped ? ' Skipped spots: ' + total.skippedTop + ' of ' + total.skipped + ' inside the top ' + topN + '.' : ''));
 }

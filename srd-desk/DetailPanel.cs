@@ -48,9 +48,18 @@ public static class DetailPanel
         Ui.Chip(t.People + " people", Theme.Mut);
         if (t.HotCount > 0) { ImGui.SameLine(0, 6); Ui.Chip(t.HotCount + (t.HotCount == 1 ? " hot spot" : " hot spots"), Theme.Hot); }
 
-        float unfoldW = ImGui.CalcTextSize("Unfold all").X + ImGui.GetStyle().FramePadding.X * 2f;
-        float foldW = ImGui.CalcTextSize("Fold replies").X + ImGui.GetStyle().FramePadding.X * 2f;
-        ImGui.SameLine(ImGui.GetWindowWidth() - 22f - unfoldW - foldW - 8f);
+        bool skipped = d.TreeSkipped(d.SelectedTree);
+        if (skipped) { ImGui.SameLine(0, 6); Ui.Chip("skipped", Theme.Mut); }
+
+        string skipLabel = skipped ? "Unskip tree" : "Skip tree";
+        float pad = ImGui.GetStyle().FramePadding.X * 2f, gap = ImGui.GetStyle().ItemSpacing.X;
+        float skipW = ImGui.CalcTextSize(skipLabel).X + pad;
+        float unfoldW = ImGui.CalcTextSize("Unfold all").X + pad;
+        float foldW = ImGui.CalcTextSize("Fold replies").X + pad;
+        ImGui.SameLine(ImGui.GetWindowWidth() - 22f - skipW - unfoldW - foldW - gap * 2f);
+        if (ImGui.Button(skipLabel)) d.ToggleTreeSkip(d.SelectedTree);
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Mark this tree as not used (its hot spots too). It stays in the list, faded.");
+        ImGui.SameLine();
         if (ImGui.Button("Fold replies")) foreach (Node k in root.Kids) d.Folded.Add(k.Id);
         ImGui.SameLine();
         if (ImGui.Button("Unfold all")) d.Folded.Clear();

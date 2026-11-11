@@ -89,15 +89,35 @@ public class Block
 public class Draft
 {
     public List<Block> Blocks { get; set; } = new();
+    // Trees and hot spots you decided not to use: a hot spot by its head comment's permalink, a tree as "tree " + its top comment's.
+    public List<string> Skipped { get; set; } = new();
     private string? path;
 
-    // Undo history: a copy of the blocks from before each change (most recent last). Not saved to disk.
+    // Undo history: a copy of the blocks and skips from before each change (most recent last). Not saved to disk.
     private readonly List<string> undoStack = new();
     private readonly List<string> redoStack = new();
     public bool CanUndo => undoStack.Count > 0;
     public bool CanRedo => redoStack.Count > 0;
 
-    private string Snapshot() => JsonSerializer.Serialize(Blocks);
+    private record State(List<Block> Blocks, List<string> Skipped);
+    private string Snapshot() => JsonSerializer.Serialize(new State(Blocks, Skipped));
+    private void Restore(string snap)
+    {
+        State? s = JsonSerializer.Deserialize<State>(snap);
+        Blocks = s?.Blocks ?? new();
+        Skipped = s?.Skipped ?? new();
+    }
+
+    public bool IsSkipped(string link) => !string.IsNullOrEmpty(link) && Skipped.Contains(link);
+
+    // Mark a tree or hot spot (by its top comment's permalink) as skipped, or take the mark off again.
+    public void ToggleSkip(string link)
+    {
+        if (string.IsNullOrEmpty(link)) return;
+        Checkpoint();
+        if (!Skipped.Remove(link)) Skipped.Add(link);
+        Save();
+    }
 
     // Call right before changing the blocks, so the change can be undone. A new change clears the redo history.
     public void Checkpoint()
@@ -112,7 +132,7 @@ public class Draft
     {
         if (undoStack.Count == 0) return false;
         redoStack.Add(Snapshot());
-        Blocks = JsonSerializer.Deserialize<List<Block>>(undoStack[^1]) ?? new();
+        Restore(undoStack[^1]);
         undoStack.RemoveAt(undoStack.Count - 1);
         Save();
         return true;
@@ -123,7 +143,7 @@ public class Draft
     {
         if (redoStack.Count == 0) return false;
         undoStack.Add(Snapshot());
-        Blocks = JsonSerializer.Deserialize<List<Block>>(redoStack[^1]) ?? new();
+        Restore(redoStack[^1]);
         redoStack.RemoveAt(redoStack.Count - 1);
         Save();
         return true;

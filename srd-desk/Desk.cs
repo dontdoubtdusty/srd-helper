@@ -114,10 +114,25 @@ public class Desk
         IEnumerable<Node> heads = Data.HotRows.Count > 0 ? Data.HotRows : Data.Everything.Where(x => x.Chain);
         foreach (Node n in heads)
         {
-            if (Draft.ContainsComment(n.Link)) continue;
+            if (Draft.ContainsComment(n.Link) || SpotSkipped(n)) continue;
             if (Draft.AddChain(Data, ThreadData.MainPath(n, ChainLimit), new HashSet<int>(), Settings.ChainContext) == "Chain added") added++;
         }
         SetStatus(added > 0 ? "Added " + added + " chains" : "No new chains");
+    }
+
+    // A tree is skipped when its top comment is in the draft's skip list.
+    // The key is "tree " + the link, so a hot spot that starts at the top comment can be skipped on its own.
+    public bool TreeSkipped(int tree) => Data != null && tree >= 0 && tree < Data.Roots.Count && Draft.IsSkipped("tree " + Data.Roots[tree].Link);
+
+    // A hot spot is skipped on its own, or because its whole tree is.
+    public bool SpotSkipped(Node n) => Draft.IsSkipped(n.Link) || (Data != null && Data.RootOf.TryGetValue(n.Id, out int t) && TreeSkipped(t));
+
+    // Skip or unskip a tree (which also covers every hot spot in it).
+    public void ToggleTreeSkip(int tree)
+    {
+        if (Data == null || tree < 0 || tree >= Data.Roots.Count) return;
+        Draft.ToggleSkip("tree " + Data.Roots[tree].Link);
+        SetStatus(TreeSkipped(tree) ? "Tree skipped" : "Tree back in");
     }
 
     // Label for the Add all button: hot spots when the file has them.
@@ -147,7 +162,10 @@ public class Desk
                 Node n = Data.ByLink[l];
                 return new { link = l, author = n.Author, score = n.Score, d = n.D, hot = n.Hot, spot = Data.SpotOf.TryGetValue(n.Id, out Node? h) ? h.Hot : 0, linked = linked.Contains(l) };
             }).ToList();
-            var labels = new { thread = Data.ThreadUrl, title = Data.Title, version = Data.Version, savedAt = DateTime.UtcNow.ToString("o"), used };
+            // Hot spots you looked at and decided against (skipped themselves or in a skipped tree).
+            var skipped = Data.HotRows.Where(SpotSkipped).Select(n => new { link = n.Link, author = n.Author, d = n.D, hot = n.Hot,
+                why = Draft.IsSkipped(n.Link) ? "spot" : "tree" }).ToList();
+            var labels = new { thread = Data.ThreadUrl, title = Data.Title, version = Data.Version, savedAt = DateTime.UtcNow.ToString("o"), used, skipped };
             string folder = Path.Combine(global::Draft.DataFolder, "drafts");
             File.WriteAllText(Path.Combine(folder, global::Draft.KeyOf(Data.ThreadUrl) + ".labels.json"),
                 System.Text.Json.JsonSerializer.Serialize(labels, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));

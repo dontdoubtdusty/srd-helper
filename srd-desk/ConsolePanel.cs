@@ -82,11 +82,20 @@ public static class ConsolePanel
     {
         if (data.HotRows.Count == 0) { ImGui.Dummy(new Vector2(0, 6)); ImGui.TextColored(Theme.Mut, "  None found."); return; }
         if (!ImGui.BeginTable("hot", 6, TableFlags, Vector2.Zero)) return;
-        Header("#", "Head", "Score", "Drama", "Why", "");
+        // Why stretches and clips, so the buttons on the right always stay visible.
+        foreach (string c in new[] { "#", "Head", "Score", "Drama" }) ImGui.TableSetupColumn(c, ImGuiTableColumnFlags.WidthFixed, 0f);
+        ImGui.TableSetupColumn("Why", ImGuiTableColumnFlags.WidthStretch, 1f);
+        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 0f);
+        ImGui.TableSetupScrollFreeze(0, 1);
+        ImGui.TableHeadersRow();
         HashSet<string> used = d.Draft.UsedLinks();
         foreach (Node n in data.HotRows)
         {
+            // A skipped row is drawn faded in place, buttons included, so the order never changes.
+            bool skipped = d.SpotSkipped(n);
+            bool byTree = skipped && !d.Draft.IsSkipped(n.Link);
             ImGui.TableNextRow();
+            if (skipped) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.4f);
             ImGui.TableNextColumn(); ImGui.PushStyleColor(ImGuiCol.Text, n.Hot <= 3 ? Theme.Hot : Theme.Warn); ImGui.TextUnformatted(n.Hot.ToString()); ImGui.PopStyleColor();
             ImGui.TableNextColumn(); Ui.Uname(n.Author);
             ImGui.TableNextColumn(); Ui.Score(n.Score);
@@ -97,6 +106,11 @@ public static class ConsolePanel
             ImGui.SameLine();
             if (used.Contains(n.Link)) ImGui.TextColored(Theme.Ok, "in draft");
             else if (ImGui.SmallButton("Add chain##ha" + n.Id)) d.AddChainFrom(n);
+            ImGui.SameLine();
+            // Skipping a whole tree covers its spots; those are taken back from the tree, not here.
+            if (byTree) ImGui.TextColored(Theme.Mut, "tree skipped");
+            else if (ImGui.SmallButton((skipped ? "unskip" : "skip") + "##hs" + n.Id)) d.Draft.ToggleSkip(n.Link);
+            if (skipped) ImGui.PopStyleVar();
         }
         ImGui.EndTable();
     }

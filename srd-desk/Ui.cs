@@ -22,6 +22,9 @@ public static class Ui
         // Off-screen pills are not drawn: rounded rects are vertex-heavy, and a big tree drawn in full passes
         // ImGui's 65535-vertex limit for one window, which crashes the app.
         if (!ImGui.IsRectVisible(p, p + box)) { ImGui.PopFont(); return; }
+        // Drawn straight into the draw list, so follow the style alpha by hand (faded rows push a lower one).
+        float alpha = ImGui.GetStyle().Alpha;
+        fg.W *= alpha; bg.W *= alpha; border.W *= alpha;
         ImDrawListPtr dl = ImGui.GetWindowDrawList();
         Vector2 a = new Vector2(p.X, p.Y + (rowH - h) / 2f);
         Vector2 b = new Vector2(p.X + box.X, a.Y + h);

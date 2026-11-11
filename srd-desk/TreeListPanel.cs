@@ -57,10 +57,16 @@ public static class TreeListPanel
         Node root = data.Roots[t.Index];
         float w = ImGui.GetContentRegionAvail().X;
         Vector2 p = ImGui.GetCursorScreenPos();
+        // The skip button sits on top of the card, so the card lets later items take the click.
+        ImGui.SetNextItemAllowOverlap();
         if (ImGui.InvisibleButton("tree" + t.Index, new Vector2(w, CardH))) d.SelectTree(t.Index);
-        bool hover = ImGui.IsItemHovered();
-        bool on = t.Index == d.SelectedTree;
         Vector2 q = new Vector2(p.X + w, p.Y + CardH);
+        Vector2 after = ImGui.GetCursorScreenPos();
+        bool hover = ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(p, q);
+        bool on = t.Index == d.SelectedTree;
+        // A skipped tree is drawn faded in place.
+        bool skipped = d.TreeSkipped(t.Index);
+        Vector4 F(Vector4 c) => skipped ? Theme.WithAlpha(c, c.W * 0.4f) : c;
 
         if (on)
         {
@@ -72,11 +78,23 @@ public static class TreeListPanel
 
         // Top line: who started it, and the score on the right.
         string who = root.Author + (root.Op ? " (OP)" : "");
-        dl.AddText(ImGui.GetFont(), ImGui.GetFontSize(), new Vector2(p.X + 12f, p.Y + 8f), Theme.U(Theme.Tx), who);
-        string score = Ui.ScoreText(root.Score);
+        dl.AddText(ImGui.GetFont(), ImGui.GetFontSize(), new Vector2(p.X + 12f, p.Y + 8f), Theme.U(F(Theme.Tx)), who);
         ImGui.PushFont(Fonts.Label);
-        Vector2 ss = ImGui.CalcTextSize(score);
-        dl.AddText(new Vector2(q.X - 12f - ss.X, p.Y + 10f), Theme.U(root.Score < 0 ? Theme.Hot : Theme.Mut), score);
+        if (hover)
+        {
+            // On hover the score makes room for skip / unskip.
+            string label = skipped ? "unskip" : "skip";
+            float bw = ImGui.CalcTextSize(label).X + ImGui.GetStyle().FramePadding.X * 2f;
+            ImGui.SetCursorScreenPos(new Vector2(q.X - 10f - bw, p.Y + 6f));
+            if (ImGui.SmallButton(label + "##sk" + t.Index)) d.ToggleTreeSkip(t.Index);
+            ImGui.SetCursorScreenPos(after);
+        }
+        else
+        {
+            string score = skipped ? "skipped" : Ui.ScoreText(root.Score);
+            Vector2 ss = ImGui.CalcTextSize(score);
+            dl.AddText(new Vector2(q.X - 12f - ss.X, p.Y + 10f), Theme.U(!skipped && root.Score < 0 ? Theme.Hot : Theme.Mut), score);
+        }
 
         // Second line: the best hot spot (when there is one), then size, people, chains.
         float x = p.X + 12f;
@@ -86,13 +104,13 @@ public static class TreeListPanel
             string hot = "HOT #" + t.BestHot;
             Vector2 hs = ImGui.CalcTextSize(hot);
             Vector4 col = t.BestHot <= 3 ? Theme.Hot : Theme.Warn;
-            dl.AddRectFilled(new Vector2(x - 2f, p.Y + 31f), new Vector2(x + hs.X + 6f, p.Y + 33f + hs.Y), Theme.U(Theme.WithAlpha(col, 0.22f)), 4f);
-            dl.AddText(new Vector2(x + 2f, p.Y + 32f), Theme.U(col), hot);
+            dl.AddRectFilled(new Vector2(x - 2f, p.Y + 31f), new Vector2(x + hs.X + 6f, p.Y + 33f + hs.Y), Theme.U(F(Theme.WithAlpha(col, 0.22f))), 4f);
+            dl.AddText(new Vector2(x + 2f, p.Y + 32f), Theme.U(F(col)), hot);
             x += hs.X + 14f;
         }
         string meta = (t.BestHot > 0 ? "" : "Tree " + (t.Index + 1) + "  ") + t.Count + " comments  " + t.People + " people" +
             (t.Chains > 0 ? "  " + t.Chains + (t.Chains == 1 ? " chain" : " chains") : "");
-        dl.AddText(new Vector2(x, p.Y + 32f), Theme.U(Theme.Mut), meta);
+        dl.AddText(new Vector2(x, p.Y + 32f), Theme.U(F(Theme.Mut)), meta);
         dl.PopClipRect();
         ImGui.PopFont();
 
@@ -100,7 +118,7 @@ public static class TreeListPanel
         float barW = w - 24f;
         Vector2 b0 = new Vector2(p.X + 12f, p.Y + CardH - 14f);
         dl.AddRectFilled(b0, new Vector2(b0.X + barW, b0.Y + 4f), Theme.U(Theme.Ln), 2f);
-        dl.AddRectFilled(b0, new Vector2(b0.X + barW * t.Count / maxCount, b0.Y + 4f), Theme.U(t.BestHot > 0 && t.BestHot <= 3 ? Theme.Hot : Theme.Acc), 2f);
+        dl.AddRectFilled(b0, new Vector2(b0.X + barW * t.Count / maxCount, b0.Y + 4f), Theme.U(F(t.BestHot > 0 && t.BestHot <= 3 ? Theme.Hot : Theme.Acc)), 2f);
         ImGui.Dummy(new Vector2(0, 2f));
     }
 }
