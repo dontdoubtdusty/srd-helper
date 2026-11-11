@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Focus page: color schemes</title>
+<style>
+/* Mockup only, no connection to the userscript. One Inspector layout, four color schemes switched by a class on .mock. */
+:root { --sans: Inter, "Segoe UI", system-ui, sans-serif; --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #202327; color: #d6d8dd; font: 14px/1.5 var(--sans); }
+svg { display: block; }
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* Scheme switcher */
+.sw { height: 56px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #2a2d32; border-bottom: 1px solid #3a3e45; }
+.sw b { font: 600 12px var(--mono); letter-spacing: .08em; color: #9aa1ab; margin-right: 8px; white-space: nowrap; }
+.sw button { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid #454a52; border-radius: 6px; padding: 6px 12px; color: #c4c9d1; }
+.sw button.on { background: #3a3e45; color: #fff; border-color: #8b929d; }
+.sw .dots { display: flex; }
+.sw .dots i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,.3); margin-left: -3px; }
+.sw .dots i:first-child { margin-left: 0; }
+.sw span.bl { margin-left: auto; color: #9aa1ab; font-size: 12px; text-align: right; max-width: 46ch; }
+
+/* ---- Color schemes: every color in the page comes from these variables ---- */
+.mock { display: block; height: calc(100vh - 57px); min-height: 640px; overflow: hidden; background: var(--bg); color: var(--tx); font: 14px/1.5 var(--sans); --rs: 4px; --rm: 6px; }
+/* Paper: warm cream, ink text. Lowest glare of the light ones. */
+.s-paper { --bg:#f6f1e7; --pn:#efe8da; --pn2:#e6dec9; --ln:#d8cdb4; --deep:#ebe3d1; --dash:#cdbf9f; --rowh:#ece4d3; --tx:#2e2a24; --mut:#6b6150; --acc:#1f6f8b; --onacc:#ffffff; --hot:#b5432f; --ok:#2f7d57; --warn:#8f6410; --gold:#8f6410; --shadow:0 1px 0 rgba(60,45,20,.06); }
+/* Mist: cool light gray with a clear blue. Closest to a light IDE theme. */
+.s-mist { --bg:#f3f5f8; --pn:#e9edf2; --pn2:#dfe5ec; --ln:#ccd4de; --deep:#eef1f5; --dash:#b9c4d2; --rowh:#e6ebf1; --tx:#1f2933; --mut:#5a6878; --acc:#2f6fdb; --onacc:#ffffff; --hot:#c2412f; --ok:#1f8a5f; --warn:#8f5f00; --gold:#8f5f00; --shadow:0 1px 0 rgba(30,50,80,.06); }
+/* Sage: soft green-gray, calm and natural, with a teal-blue accent so it does not blur into the green. */
+.s-sage { --bg:#e9eee6; --pn:#dfe6db; --pn2:#d3dccd; --ln:#bfcbb8; --deep:#e2e9de; --dash:#a9b8a0; --rowh:#dae2d5; --tx:#22301f; --mut:#4f5f49; --acc:#26728a; --onacc:#ffffff; --hot:#b3442f; --ok:#4d7c1f; --warn:#85620d; --gold:#85620d; --shadow:0 1px 0 rgba(30,50,20,.06); }
+/* Dusk: mid-tone blue-gray, not black. Dark enough for a dim room, but it never goes to night mode. */
+.s-dusk { --bg:#2d3640; --pn:#343f4a; --pn2:#3d4a57; --ln:#4a5866; --deep:#28303a; --dash:#566574; --rowh:#38444f; --tx:#e4e9ee; --mut:#a3b0bd; --acc:#7cc4e8; --onacc:#0e2230; --hot:#ff9d8d; --ok:#82dcb2; --warn:#f0cd7a; --gold:#f0cd7a; --shadow:none; }
+
+/* ---- Components ---- */
+.tag { font: 500 11px/1 var(--mono); padding: 3px 7px; border-radius: var(--rs); border: 1px solid var(--ln); color: var(--mut); white-space: nowrap; }
+.tag.crowd { color: var(--acc); border-color: color-mix(in srgb, var(--acc) 50%, transparent); }
+.tag.duel { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.tag.heat { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 50%, transparent); }
+.tag.chain { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+.op { font: 600 10px/1 var(--mono); padding: 3px 6px; border-radius: var(--rs); background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); letter-spacing: .06em; }
+.sc { font: 12px var(--mono); color: var(--mut); }
+.sc.neg { color: var(--hot); }
+.tabs { display: flex; gap: 2px; }
+.tabs button { background: transparent; border: 0; padding: 5px 10px; color: var(--mut); border-radius: var(--rs); }
+.tabs button.on { color: var(--tx); background: var(--pn2); }
+.btn { background: var(--pn2); border: 1px solid var(--ln); border-radius: var(--rs); padding: 5px 11px; color: var(--tx); }
+.btn.pri { background: var(--acc); border-color: var(--acc); color: var(--onacc); font-weight: 600; }
+.mini { font: 11px var(--mono); background: transparent; border: 1px solid var(--ln); border-radius: var(--rs); padding: 2px 8px; color: var(--mut); }
+.mini:hover { color: var(--tx); border-color: var(--mut); }
+.acts { display: inline-flex; gap: 6px; opacity: 0; transition: opacity .12s; }
+.hv:hover > .in .acts { opacity: 1; }
+.scroll { overflow: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--ln) transparent; }
+.meter { display: inline-flex; align-items: center; gap: 8px; font: 12px var(--mono); }
+.meter .bar { width: 70px; height: 6px; background: var(--ln); border-radius: 3px; overflow: hidden; }
+.meter .bar i { display: block; width: 62%; height: 100%; background: linear-gradient(90deg, #f0b93a, #e8782a); }
+
+/* Draft cards */
+.dr-card { border: 1px solid var(--ln); background: var(--bg); border-radius: var(--rm); margin: 0 0 12px; box-shadow: var(--shadow); }
+.dr-card header { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--ln); font: 11px var(--mono); color: var(--mut); text-transform: uppercase; letter-spacing: .06em; }
+.dr-card header .g { flex: 1; }
+.dr-card .md { padding: 10px 12px; font-size: 13px; line-height: 1.55; }
+.dr-card .md blockquote { margin: 0 0 6px; padding: 2px 0 2px 10px; border-left: 2px solid var(--acc); color: var(--tx); }
+.dr-card .md blockquote blockquote { border-left-color: var(--mut); margin-top: 6px; }
+.dr-card .md a { color: var(--acc); }
+.dr-src { width: 100%; height: 100%; background: transparent; border: 0; color: var(--tx); font: 12.5px/1.6 var(--mono); padding: 12px; resize: none; outline: none; }
+
+/* ---- Inspector layout ---- */
+.grid { display: grid; height: 100%; grid-template-columns: 290px minmax(0,1fr) 360px; grid-template-rows: 42px minmax(0,1fr) 190px; }
+.top { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 0 14px; background: var(--pn); border-bottom: 1px solid var(--ln); }
+.top .brand { font: 700 12px var(--mono); letter-spacing: .1em; color: var(--acc); }
+.top .ttl { color: var(--mut); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top .r { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.list { background: var(--pn); border-right: 1px solid var(--ln); padding: 8px; }
+.list h6 { margin: 8px 6px; font: 600 11px var(--mono); letter-spacing: .08em; color: var(--mut); text-transform: uppercase; }
+.ti { padding: 10px 12px; border: 1px solid transparent; border-radius: var(--rm); cursor: pointer; margin-bottom: 4px; }
+.ti:hover { background: var(--pn2); }
+.ti.on { background: var(--bg); border-color: var(--ln); box-shadow: inset 3px 0 0 var(--acc), var(--shadow); }
+.ti .a { display: flex; justify-content: space-between; font-weight: 600; font-size: 13px; }
+.ti .m { font: 11px var(--mono); color: var(--mut); margin: 3px 0 8px; }
+.heatbar { height: 4px; background: var(--ln); border-radius: 2px; overflow: hidden; }
+.heatbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--acc), var(--hot)); }
+.detail { background: var(--bg); padding: 14px 22px 40px; }
+.dh { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; position: sticky; top: -14px; padding: 12px 0; background: var(--bg); z-index: 1; border-bottom: 1px solid var(--ln); }
+.c .kids { margin-left: 12px; padding-left: 14px; border-left: 1px dashed var(--dash); }
+.in { padding: 9px 12px; margin: 6px 0; border: 1px solid var(--ln); background: var(--pn); border-radius: var(--rm); box-shadow: var(--shadow); }
+.c.chain > .in { border-color: color-mix(in srgb, var(--hot) 55%, var(--ln)); box-shadow: inset 3px 0 0 var(--hot); }
+.hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.au { font: 600 12.5px var(--mono); color: var(--acc); }
+.tx { margin: 5px 0 0; font-size: 13.5px; line-height: 1.6; max-width: 80ch; }
+.rt { grid-row: 2 / 4; grid-column: 3; background: var(--pn); border-left: 1px solid var(--ln); display: flex; flex-direction: column; min-height: 0; }
+.rt .hh { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--ln); }
+.rt .dbody { padding: 12px; flex: 1; min-height: 0; }
+.console { grid-column: 1 / 3; background: var(--deep); border-top: 1px solid var(--ln); display: flex; flex-direction: column; min-height: 0; }
+.console .hh { padding: 6px 14px; font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); border-bottom: 1px solid var(--ln); display: flex; gap: 14px; }
+.console .hh span.on { color: var(--tx); box-shadow: inset 0 -2px 0 var(--acc); padding-bottom: 5px; margin-bottom: -7px; }
+table { border-collapse: collapse; width: 100%; font: 12.5px var(--mono); }
+td, th { padding: 6px 14px; text-align: left; border-bottom: 1px solid var(--ln); white-space: nowrap; }
+th { color: var(--mut); font-weight: 500; position: sticky; top: 0; background: var(--deep); }
+tr:hover td { background: var(--rowh); }
+td.sev { color: var(--hot); }
+</style>
+</head>
+<body>
+<div class="sw" id="sw"></div>
+<div class="mock s-paper" id="mock"></div>
+
+<script>
+// ---- Sample thread (invented) ----
+const THREAD = 'Am I wrong for skipping my sister’s wedding over the seating chart?';
+const TREES = [
+  { a:'vexedpelican', s:-14, tags:['crowd','chain'], t:'You are making this about yourself. A seating chart is not an insult, and skipping a wedding over it tells everyone exactly who you are.', k:[
+    { a:'throwaway_lena', op:1, s:3, tags:['duel'], t:'It is not the chart. I was put at the kids’ table after paying for half the venue.', k:[
+      { a:'vexedpelican', s:-9, tags:['duel'], t:'Paying does not buy you a seat. That is called a gift.', k:[
+        { a:'throwaway_lena', op:1, s:-2, tags:['duel'], t:'A gift does not come with a broken promise. I was told in writing I would be at the family table.', k:[
+          { a:'marlowe_k', s:-6, tags:['heat'], t:'Then sue. Oh wait, you will not, because you know you are being ridiculous. Grow up.', k:[
+            { a:'vexedpelican', s:-11, tags:['duel','heat'], t:'Imagine suing over chairs. Pathetic.', k:[] } ] },
+          { a:'dorian_wells', s:12, tags:[], t:'You are all dodging the real question: did she tell you before the invitations went out?', k:[] } ] } ] } ] },
+    { a:'quietfern', s:41, tags:[], t:'OP, did you ask your sister directly? Half of these threads end when someone sends one text.', k:[] } ] },
+  { a:'hollowbirch', s:88, tags:[], t:'Soft YTA. Paying for half the venue and expecting a throne is how weddings turn into invoices.', k:[
+    { a:'throwaway_lena', op:1, s:5, tags:[], t:'I never asked for a throne. I asked for the seat they promised me.', k:[
+      { a:'hollowbirch', s:22, tags:[], t:'Fair. Then that is the conversation to have, not a boycott.', k:[] } ] },
+    { a:'ostrich_union', s:19, tags:[], t:'The “in writing” part is doing a lot of work here. Show the message.', k:[] } ] },
+  { a:'nightshift_nora', s:7, tags:[], t:'NTA. Pay for the venue, sit with the kids, fine. Then nobody gets to expect a speech from you either.', k:[] }
+];
+const stats = t => { let n = 0, people = new Set(); (function w(x){ n++; people.add(x.a); x.k.forEach(w); })(t); return { n, people: people.size }; };
+const tagHtml = c => c.tags.map(t => '<span class="tag ' + t + '">' + ({ crowd:'Crowd Magnet', duel:'Duel', heat:'heated', chain:'chain' })[t] + '</span>').join('');
+const scHtml = c => '<span class="sc' + (c.s < 0 ? ' neg' : '') + '">' + c.s + '</span>';
+const opHtml = c => c.op ? '<span class="op">OP</span>' : '';
+const acts = '<span class="acts"><button class="mini">pick</button><button class="mini">link</button><button class="mini">+ chain</button></span>';
+
+const SRC = '[vexedpelican](https://www.reddit.com/r/example/comments/abc/c/1)\n> You are making this about yourself.\n>\n>> [throwaway_lena](https://www.reddit.com/r/example/comments/abc/c/2)\n>> It is not the chart. I was put at the kids’ table.\n\n* \n\n[hollowbirch](https://www.reddit.com/r/example/comments/abc/c/5)\n> Soft YTA.';
+const draftBody = () =>
+  '<div class="dr-card"><header><span>chain 1</span><span class="g"></span><span>up</span><span>down</span></header><div class="md">' +
+  '<blockquote><a href="#">vexedpelican</a><br>You are making this about yourself. A seating chart is not an insult.' +
+  '<blockquote>throwaway_lena<br>It is not the chart. I was put at the kids’ table after paying for half the venue.' +
+  '<blockquote>vexedpelican<br>Paying does not buy you a seat. That is called a gift.</blockquote></blockquote></blockquote></div></div>' +
+  '<div class="dr-card"><header><span>chain 2</span><span class="g"></span><span>up</span><span>down</span></header><div class="md">' +
+  '<blockquote><a href="#">hollowbirch</a><br>Soft YTA. Paying for half the venue and expecting a throne is how weddings turn into invoices.' +
+  '<blockquote>throwaway_lena<br>I never asked for a throne. I asked for the seat they promised me.</blockquote></blockquote></div></div>';
+
+// Inspector page: tree list on the left, one tree in the middle, draft on the right, chains table underneath.
+let sel = 0;
+const node = c => '<div class="c hv' + (c.tags.includes('chain') ? ' chain' : '') + '"><div class="in"><div class="hd"><span class="au">' + c.a + '</span>' + opHtml(c) + scHtml(c) + tagHtml(c) + acts + '</div><p class="tx">' + c.t + '</p></div>' +
+  (c.k.length ? '<div class="kids">' + c.k.map(node).join('') + '</div>' : '') + '</div>';
+const detail = () => {
+  const t = TREES[sel], st = stats(t);
+  return '<div class="dh"><b>Tree ' + (sel + 1) + '</b><span class="tag">' + st.n + ' comments</span><span class="tag">' + st.people + ' people</span><span style="flex:1"></span><button class="btn">Fold replies</button><button class="btn">Unfold all</button></div>' + node(t);
+};
+const page = () =>
+  '<div class="grid"><div class="top"><span class="brand">SRD</span><span class="ttl">' + THREAD + '</span><div class="r"><span class="meter"><span>62% Promising</span><span class="bar"><i></i></span></span><button class="btn">Save file</button><button class="btn">Close</button></div></div>' +
+  '<div class="list scroll"><h6>Trees</h6>' + TREES.map((t, i) => { const s = stats(t); return '<div class="ti' + (i === sel ? ' on' : '') + '" data-tree="' + i + '"><div class="a"><span>' + t.a + '</span><span class="sc' + (t.s < 0 ? ' neg' : '') + '">' + t.s + '</span></div><div class="m">' + s.n + ' comments · ' + s.people + ' people</div><div class="heatbar"><i style="width:' + Math.min(100, s.n * 8) + '%"></i></div></div>'; }).join('') + '</div>' +
+  '<div class="detail scroll" id="detail">' + detail() + '</div>' +
+  '<div class="rt"><div class="hh"><div class="tabs"><button class="on" data-dt="p">Preview</button><button data-dt="s">Source</button></div><span style="flex:1"></span><button class="btn">Add picked</button><button class="btn pri">Copy</button></div><div class="dbody scroll" data-draft>' + draftBody() + '</div></div>' +
+  '<div class="console"><div class="hh"><span class="on">Chains 2</span><span>Duels 1</span><span>Heated 2</span></div><div class="scroll" style="flex:1"><table>' +
+  '<tr><th>#</th><th>Head</th><th>Score</th><th>Levels</th><th>Comments</th><th>People</th><th></th></tr>' +
+  '<tr><td class="sev">1</td><td>vexedpelican</td><td>-14</td><td>5</td><td>7</td><td>4</td><td><button class="mini">Add chain</button></td></tr>' +
+  '<tr><td class="sev">2</td><td>marlowe_k</td><td>-6</td><td>2</td><td>2</td><td>2</td><td><button class="mini">Add chain</button></td></tr>' +
+  '</table></div></div></div>';
+
+// ---- Schemes, switcher and interactions ----
+const SCHEMES = [
+  { k:'paper', name:'Paper', sw:['#f6f1e7', '#e6dec9', '#1f6f8b'], note: 'Warm cream with ink text and an ink-teal accent. The lowest glare of the light options, like a printed page.' },
+  { k:'mist',  name:'Mist',  sw:['#f3f5f8', '#dfe5ec', '#2f6fdb'], note: 'Cool light gray with a clear blue. The closest to a light code editor; crisp but not white.' },
+  { k:'sage',  name:'Sage',  sw:['#e9eee6', '#d3dccd', '#26728a'], note: 'Soft green-gray with a teal-blue accent. Calm and natural; easy for long sessions.' },
+  { k:'dusk',  name:'Dusk',  sw:['#2d3640', '#3d4a57', '#7cc4e8'], note: 'Mid-tone blue-gray, not black. Gentle in a dim room without feeling like night mode.' }
+];
+const mock = document.getElementById('mock'), sw = document.getElementById('sw');
+mock.innerHTML = page();
+sw.innerHTML = '<b>COLOR SCHEMES</b>' + SCHEMES.map(s => '<button data-s="' + s.k + '"><span class="dots">' + s.sw.map(c => '<i style="background:' + c + '"></i>').join('') + '</span>' + s.name + '</button>').join('') + '<span class="bl" id="bl"></span>';
+function setScheme(k) {
+  const s = SCHEMES.find(x => x.k === k) || SCHEMES[0];
+  mock.className = 'mock s-' + s.k;
+  sw.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.s === s.k));
+  document.getElementById('bl').textContent = s.note;
+}
+sw.addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (b) setScheme(b.dataset.s); });
+setScheme(location.hash.replace('#', '') || 'paper'); // opening the file with #mist, #sage or #dusk starts on that scheme
+mock.addEventListener('click', e => {
+  const dt = e.target.closest('[data-dt]');
+  if (dt) {
+    const pane = dt.closest('.rt'), body = pane.querySelector('[data-draft]');
+    pane.querySelectorAll('[data-dt]').forEach(x => x.classList.toggle('on', x === dt));
+    body.innerHTML = dt.dataset.dt === 's' ? '<textarea class="dr-src" readonly spellcheck="false">' + SRC.replace(/</g, '&lt;') + '</textarea>' : draftBody();
+  }
+  const ti = e.target.closest('[data-tree]');
+  if (ti) {
+    sel = +ti.dataset.tree;
+    ti.parentElement.querySelectorAll('.ti').forEach(x => x.classList.toggle('on', x === ti));
+    document.getElementById('detail').innerHTML = detail();
+  }
+});
+</script>
+</body>
+</html>
