@@ -19,6 +19,9 @@ public static class Ui
         Vector2 p = ImGui.GetCursorScreenPos();
         Vector2 box = new Vector2(size.X + 14f, rowH);
         ImGui.Dummy(box);
+        // Off-screen pills are not drawn: rounded rects are vertex-heavy, and a big tree drawn in full passes
+        // ImGui's 65535-vertex limit for one window, which crashes the app.
+        if (!ImGui.IsRectVisible(p, p + box)) { ImGui.PopFont(); return; }
         ImDrawListPtr dl = ImGui.GetWindowDrawList();
         Vector2 a = new Vector2(p.X, p.Y + (rowH - h) / 2f);
         Vector2 b = new Vector2(p.X + box.X, a.Y + h);
@@ -67,10 +70,14 @@ public static class Ui
         bool clamp = maxLines > 0 && full > lineH * maxLines + 2f;
         float h = clamp ? lineH * maxLines : full;
         Vector2 p = ImGui.GetCursorScreenPos();
-        ImDrawListPtr dl = ImGui.GetWindowDrawList();
-        dl.PushClipRect(p, new Vector2(p.X + wrap + 2f, p.Y + h + 1f), true);
-        dl.AddText(ImGui.GetFont(), ImGui.GetFontSize(), p, Theme.U(color), text, wrap);
-        dl.PopClipRect();
+        // Skipped entirely when off screen, for the same vertex limit as Pill.
+        if (ImGui.IsRectVisible(p, new Vector2(p.X + wrap, p.Y + h)))
+        {
+            ImDrawListPtr dl = ImGui.GetWindowDrawList();
+            dl.PushClipRect(p, new Vector2(p.X + wrap + 2f, p.Y + h + 1f), true);
+            dl.AddText(ImGui.GetFont(), ImGui.GetFontSize(), p, Theme.U(color), text, wrap);
+            dl.PopClipRect();
+        }
         ImGui.Dummy(new Vector2(wrap, h));
         return clamp;
     }

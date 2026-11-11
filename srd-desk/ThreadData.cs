@@ -170,8 +170,22 @@ public class ThreadData
         RootOf[n.Id] = root;
         ParentOf[n.Id] = parent;
         Everything.Add(n);
-        if (!string.IsNullOrEmpty(n.Link)) ByLink[n.Link] = n;
+        if (!string.IsNullOrEmpty(n.Link))
+        {
+            // Older exports lack ?context=9; the old form stays a key too so drafts saved with it still match.
+            string original = n.Link;
+            n.Link = ContextLink(original);
+            ByLink[original] = n;
+            ByLink[n.Link] = n;
+        }
         foreach (Node k in n.Kids) IndexNode(k, n, depth + 1, root);
+    }
+
+    // A comment link that opens with the whole chain above it: any query or anchor replaced by ?context=9.
+    public static string ContextLink(string link)
+    {
+        int cut = link.IndexOfAny(new[] { '?', '#' });
+        return (cut >= 0 ? link[..cut] : link) + "?context=9";
     }
 
     // A comment and everything below it, in reading order.
