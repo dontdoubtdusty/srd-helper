@@ -19,6 +19,7 @@ public class Desk
     public bool HeaderBold;                           // Header menu: add custom and numbered headers in bold
     public bool SourceTab;
     public readonly HashSet<string> Editing = new();  // draft blocks open in the markdown editor
+    public readonly HashSet<string> Trimming = new(); // quotes open in trim mode, as "blockId:quoteIndex"
     public bool ConfirmClear;
     public bool OpenOptions;
     public bool ShowGuide;
@@ -55,7 +56,7 @@ public class Desk
             FilePath = path;
             Draft = Draft.LoadFor(data.ThreadUrl, Settings);
             SelectedTree = 0;
-            Folded.Clear(); Expanded.Clear(); Picked.Clear(); Linked.Clear(); Editing.Clear();
+            Folded.Clear(); Expanded.Clear(); Picked.Clear(); Linked.Clear(); Editing.Clear(); Trimming.Clear();
             ConsoleTab = data.HotRows.Count > 0 ? "hot" : "chains";
             HotTreesOnly = data.HotRows.Count > 0;
             SelectedTree = data.HotRows.Count > 0 ? data.RootOf[data.HotRows[0].Id] : 0;

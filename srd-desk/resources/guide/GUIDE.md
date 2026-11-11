@@ -88,6 +88,8 @@ Press Add all hot spots in the draft panel to add every hot spot that is not in 
 ### The draft
 Each piece of your post is a card. Buttons on the card: ^ and v move it, edit opens its markdown, x removes it. Edit a chain by hand and the card is marked "edited", and the preview stops showing usernames, because the names can no longer be matched to the lines.
 
+**Trimming a long quote:** press trim next to a quote in a chain card. The quote is listed one sentence per row; click a sentence to cut it, click again to bring it back. In the post, each run of cut sentences becomes [...] and the quote becomes one paragraph, which reads better on mobile. Press done to close it, or keep all to undo every cut in that quote. The full text is kept, so you can open trim again later and change your mind. Trimming keeps the usernames (unlike edit), and a chain edited by hand can no longer be trimmed.
+
 - **Header:** adds a header line at the end of the draft, plain by default. The popup starts with two numbered headers, Giant drama thread #N: and Subthread N: (the numbers count what is already in the draft, and Subthread starts again at 1 under each giant thread). Below them are your presets (click to add; B makes that preset bold or plain; x removes it), a Custom header box (what you type is added and remembered), a bold box for custom and numbered headers, and the template buttons. To switch a header in the draft between bold and plain, press edit on it and tick bold. Add the header first, then the chains that belong under it, then the next header.
 - **Add text:** a free text block for your own sentences.
 - **Preview / Source:** Preview shows the cards with badges. Source shows exactly the markdown that Copy puts on your clipboard.
@@ -169,7 +171,7 @@ It was set so the example threads land where they felt right (the PCM rules thre
 Every time you press Copy, the app writes which comments the post links next to the draft. `calibrate.js` in the userscript folder compares those (or a finished post saved from your browser) with the drama scores and reports how many of your picks were inside a hot spot and how high they ranked. Run it after changing the weights in `DRAMA` to see whether a change helps:
 
 `node calibrate.js srd-abc123.srd.json drafts\abc123.labels.json`
-- Edit a chain only when you must. Hand edits turn off the usernames in the preview for that card.
+- Edit a chain only when you must. Hand edits turn off the usernames in the preview for that card. To shorten a quote, use trim instead.
 - Keep a template for the headers you always use, and add the custom ones as you go.
 
 ## Options

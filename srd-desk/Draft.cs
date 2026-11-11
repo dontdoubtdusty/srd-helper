@@ -14,6 +14,46 @@ public class Who
     public bool K { get; set; }
     // True for the comment the chain replies to: shown grayed as context, not counted as quoted.
     public bool C { get; set; }
+    // Sentences cut from this quote (indexes into Trim.Sentences(T)). T keeps the full text, so a trim can be undone later.
+    public List<int>? Cut { get; set; }
+
+    // The quote as it goes into the post: the full text, or the kept sentences with [...] where the cuts were.
+    [JsonIgnore] public string Shown => Trim.Apply(T, Cut);
+}
+
+// Shortening a quote: split it into sentences, drop some, and mark each gap with [...].
+public static class Trim
+{
+    public const string Gap = "[...]";
+    private static readonly System.Text.RegularExpressions.Regex SentenceEnd = new(@"(?<=[.!?…][""'”’)\]*]*)\s+(?=\S)");
+
+    // The sentences of a comment, in order. Paragraphs and lines always split; inside a line, a split follows . ! ? or an ellipsis.
+    public static List<string> Sentences(string text)
+    {
+        var list = new List<string>();
+        foreach (string line in System.Text.RegularExpressions.Regex.Split(text ?? "", @"\n+"))
+        {
+            string flat = System.Text.RegularExpressions.Regex.Replace(line, @"\s+", " ").Trim();
+            if (flat.Length == 0) continue;
+            foreach (string s in SentenceEnd.Split(flat)) if (s.Trim().Length > 0) list.Add(s.Trim());
+        }
+        return list;
+    }
+
+    // The text with the cut sentences replaced by [...]: one paragraph, a single [...] per run of cut sentences,
+    // including a leading or trailing one. With nothing cut the original text (and its paragraphs) is returned unchanged.
+    public static string Apply(string text, List<int>? cut)
+    {
+        if (cut == null || cut.Count == 0) return text;
+        var parts = new List<string>();
+        List<string> sents = Sentences(text);
+        for (int i = 0; i < sents.Count; i++)
+        {
+            if (!cut.Contains(i)) parts.Add(sents[i]);
+            else if (parts.Count == 0 || parts[^1] != Gap) parts.Add(Gap);
+        }
+        return string.Join(" ", parts);
+    }
 }
 
 // One piece of the post: a chain, a free text note, or a header (a line that starts a group of chains; plain or bold).
@@ -193,6 +233,47 @@ public class Draft
         Blocks.Add(new Block { Kind = "chain", Md = md, Built = md, Who = who });
         Save();
         return "Chain added";
+    }
+
+    // Cut or restore one sentence of a quote in a chain, then rebuild the chain's markdown. At least one sentence
+    // always stays. Returns a message for the status line, or null when it worked.
+    public string? ToggleCut(Block b, int quote, int sentence)
+    {
+        if (b.Who == null || b.Edited || quote < 0 || quote >= b.Who.Count) return "Can't trim a chain edited by hand";
+        Who w = b.Who[quote];
+        int count = Trim.Sentences(w.T).Count;
+        if (sentence < 0 || sentence >= count) return null;
+        var cut = new List<int>(w.Cut ?? new List<int>());
+        if (!cut.Remove(sentence))
+        {
+            if (cut.Count + 1 >= count) return "Keep at least one sentence";
+            cut.Add(sentence);
+            cut.Sort();
+        }
+        Checkpoint();
+        w.Cut = cut.Count > 0 ? cut : null;
+        Rebuild(b);
+        Save();
+        return null;
+    }
+
+    // Put every cut sentence of a quote back.
+    public void ResetCut(Block b, int quote)
+    {
+        if (b.Who == null || b.Edited || quote < 0 || quote >= b.Who.Count || b.Who[quote].Cut == null) return;
+        Checkpoint();
+        b.Who[quote].Cut = null;
+        Rebuild(b);
+        Save();
+    }
+
+    // Write a chain's markdown again from its quotes (with their trims). Not for hand-edited chains: that would lose the edits.
+    private static void Rebuild(Block b)
+    {
+        if (b.Who == null) return;
+        string md = ChainBuilder.Build(b.Who.Select(w => new ChainItem(w.L, w.Shown, w.U, w.K)).ToList());
+        b.Md = md;
+        b.Built = md;
     }
 
     public Block AddText()

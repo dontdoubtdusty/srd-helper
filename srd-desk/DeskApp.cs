@@ -207,6 +207,14 @@ public sealed class DeskApp
                 case "alltrees": desk.HotTreesOnly = false; break;
                 case "labels": desk.SaveLabels(); break;
                 case "text": { Block b = desk.Draft.AddText(); b.Md = "A note of my own."; break; }
+                // trimopen:block:quote opens trim mode; cut:block:quote:sentence cuts one sentence.
+                case "trimopen": { int.TryParse(parts.Length > 2 ? parts[2] : "", out int q); if (n < desk.Draft.Blocks.Count) desk.Trimming.Add(desk.Draft.Blocks[n].Id + ":" + q); break; }
+                case "cut":
+                    {
+                        int.TryParse(parts.Length > 2 ? parts[2] : "", out int q); int.TryParse(parts.Length > 3 ? parts[3] : "", out int s);
+                        if (n < desk.Draft.Blocks.Count) desk.Draft.ToggleCut(desk.Draft.Blocks[n], q, s);
+                        break;
+                    }
             }
         }
     }

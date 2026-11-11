@@ -180,7 +180,7 @@ public static class DraftPanel
         // Preview.
         if (string.IsNullOrWhiteSpace(b.Md)) ImGui.TextColored(Theme.Mut, "empty");
         else if (b.Kind == "header") DrawHeaderPreview(b, inner, p.X + 10f);
-        else if (b.Who != null && !b.Edited) DrawChainPreview(b, inner, p.X + 10f);
+        else if (b.Who != null && !b.Edited) DrawChainPreview(d, b, inner, p.X + 10f);
         else DrawMarkdownPreview(b.Md, inner, p.X + 10f);
         ImGui.Dummy(new Vector2(0, 6));
 
@@ -282,12 +282,16 @@ public static class DraftPanel
     }
 
     // A chain with who said what: a colored username badge over each quote, indented by nesting level.
-    private static void DrawChainPreview(Block b, float width, float left)
+    // Each quote has a "trim" control; in trim mode its sentences are listed and a click cuts or restores one.
+    private static void DrawChainPreview(Desk d, Block b, float width, float left)
     {
         ImDrawListPtr dl = ImGui.GetWindowDrawList();
         Vector4[] bars = { Theme.Acc, Theme.Ok, Theme.Duel };
-        foreach (Who w in b.Who!)
+        for (int qi = 0; qi < b.Who!.Count; qi++)
         {
+            Who w = b.Who[qi];
+            string key = b.Id + ":" + qi;
+            bool trimming = d.Trimming.Contains(key);
             float indent = (w.L - 1) * 14f;
             Vector2 top = new Vector2(left + indent, ImGui.GetCursorScreenPos().Y);
             ImGui.SetCursorScreenPos(new Vector2(left + indent + 12f, top.Y));
@@ -302,12 +306,65 @@ public static class DraftPanel
             ImGui.SameLine(0, 8);
             Ui.Score(w.S);
             if (w.K) { ImGui.SameLine(0, 8); Ui.Chip("link", Theme.Acc); }
+            if (w.Cut != null) { ImGui.SameLine(0, 8); Ui.Chip("trimmed", Theme.Warn); }
+            DrawTrimControls(d, b, qi, key, trimming);
             ImGui.SetCursorScreenPos(new Vector2(left + indent + 12f, ImGui.GetCursorScreenPos().Y));
             float wrap = Math.Max(100f, width - indent - 14f);
-            Ui.Body(w.T, wrap, 0, w.C ? Theme.Mut : w.K ? Theme.Acc : Theme.Tx);
+            Vector4 color = w.C ? Theme.Mut : w.K ? Theme.Acc : Theme.Tx;
+            if (trimming) DrawTrimList(d, b, qi, wrap, color);
+            else Ui.Body(w.Shown, wrap, 0, color);
             float bottom = ImGui.GetCursorScreenPos().Y;
             dl.AddRectFilled(new Vector2(top.X, top.Y + 2f), new Vector2(top.X + 3f, bottom - 2f), Theme.U(w.C ? Theme.Mut : bars[Math.Min(w.L, 3) - 1]), 1.5f);
             ImGui.SetCursorScreenPos(new Vector2(left, bottom + 6f));
+        }
+    }
+
+    // On a quote's badge row: "trim" to open trim mode; while open, "done" and (when something is cut) "keep all".
+    private static void DrawTrimControls(Desk d, Block b, int qi, string key, bool trimming)
+    {
+        ImGui.SameLine(0, 10);
+        if (!trimming)
+        {
+            if (Ui.Link("trim##t" + qi)) d.Trimming.Add(key);
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Shorten this quote: click sentences to cut them, each gap becomes [...]");
+            return;
+        }
+        if (Ui.Link("done##td" + qi)) d.Trimming.Remove(key);
+        if (b.Who![qi].Cut != null)
+        {
+            ImGui.SameLine(0, 4);
+            if (Ui.Link("keep all##tk" + qi)) d.Draft.ResetCut(b, qi);
+        }
+    }
+
+    // Trim mode: one row per sentence. Kept sentences are in the normal color, cut ones faded with a red edge; a click switches.
+    private static void DrawTrimList(Desk d, Block b, int qi, float wrap, Vector4 color)
+    {
+        Who w = b.Who![qi];
+        List<string> sents = Trim.Sentences(w.T);
+        ImDrawListPtr dl = ImGui.GetWindowDrawList();
+        float x = ImGui.GetCursorScreenPos().X;
+        int? toggle = null;
+        for (int s = 0; s < sents.Count; s++)
+        {
+            bool cut = w.Cut != null && w.Cut.Contains(s);
+            float textW = wrap - 8f;
+            float h = ImGui.CalcTextSize(sents[s], false, textW).Y + 4f;
+            Vector2 p = new Vector2(x, ImGui.GetCursorScreenPos().Y);
+            ImGui.SetCursorScreenPos(p);
+            if (ImGui.InvisibleButton("ts" + qi + "_" + s, new Vector2(wrap, h))) toggle = s;
+            bool hover = ImGui.IsItemHovered();
+            if (hover) dl.AddRectFilled(p, new Vector2(p.X + wrap, p.Y + h), Theme.U(Theme.WithAlpha(Theme.Tx, 0.07f)), 3f);
+            dl.AddRectFilled(p, new Vector2(p.X + 2f, p.Y + h), Theme.U(cut ? Theme.Hot : Theme.WithAlpha(color, 0.5f)));
+            dl.AddText(ImGui.GetFont(), ImGui.GetFontSize(), new Vector2(p.X + 8f, p.Y + 2f), Theme.U(cut ? Theme.WithAlpha(Theme.Mut, 0.5f) : color), sents[s], textW);
+            if (hover) ImGui.SetTooltip(cut ? "Cut: click to keep" : "Click to cut");
+            ImGui.SetCursorScreenPos(new Vector2(x, p.Y + h + 2f));
+        }
+        ImGui.Dummy(Vector2.Zero);
+        if (toggle != null)
+        {
+            string? msg = d.Draft.ToggleCut(b, qi, toggle.Value);
+            if (msg != null) d.SetStatus(msg);
         }
     }
 
