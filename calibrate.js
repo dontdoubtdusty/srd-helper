@@ -3,7 +3,7 @@
 //   node calibrate.js <thread.srd.json> <post.htm | thread.labels.json> [more pairs...] [--top N]
 //
 // For each pair: the exported thread from the userscript, and either a saved SRD post (the page saved from your
-// browser) or the labels file SRD Desk writes when you mark comments as used (which also lists the hot spots you skipped). It re-scores the thread with the
+// browser) or the labels file Kettle writes when you mark comments as used (which also lists the hot spots you skipped). It re-scores the thread with the
 // current settings in srd-helper.user.js (so you can change DRAMA there and run again), then reports where the
 // comments you actually linked landed: inside a hot spot or not, and how high they rank.
 // Old exports (version 1) hold only the trees with chains, so most links will be "not in export" for those.
@@ -33,7 +33,9 @@ function linkedIds(file, threadId) {
   if (/\.json$/i.test(file)) {
     const j = JSON.parse(text);
     // Only the linked quotes, so a labels file counts the same comments a saved post would show.
-    return new Set((j.used || []).filter(u => u.linked).map(u => idOf(u.link)).filter(Boolean));
+    // Hot spots you accepted count as wanted too: you judged them good finds even if they are not in the post.
+    const wanted = (j.used || []).filter(u => u.linked).concat(j.accepted || []);
+    return new Set(wanted.map(u => idOf(u.link)).filter(Boolean));
   }
   const ids = new Set();
   const re = new RegExp('comments/' + threadId + '/(?:[^/"\'\\s]*|comment)/([a-z0-9]{5,9})', 'g');
@@ -42,7 +44,7 @@ function linkedIds(file, threadId) {
   return ids;
 }
 
-// The hot spots you skipped in SRD Desk (labels files only): ids of their head comments.
+// The hot spots you skipped in Kettle (labels files only): ids of their head comments.
 function skippedIds(file) {
   if (!/\.json$/i.test(file)) return [];
   return (JSON.parse(fs.readFileSync(file, 'utf8')).skipped || []).map(s => idOf(s.link)).filter(Boolean);

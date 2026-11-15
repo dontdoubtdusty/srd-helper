@@ -3,7 +3,7 @@
   <PropertyGroup>
     <!-- WinExe: a normal Windows app, so no black console window opens behind it -->
     <OutputType>WinExe</OutputType>
-    <AssemblyName>SrdDesk</AssemblyName>
+    <AssemblyName>Kettle</AssemblyName>
     <!-- The -windows target and UseWindowsForms are only for the native "Open file" dialog -->
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>

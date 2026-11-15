@@ -91,6 +91,10 @@ public class Draft
     public List<Block> Blocks { get; set; } = new();
     // Trees and hot spots you decided not to use: a hot spot by its head comment's permalink, a tree as "tree " + its top comment's.
     public List<string> Skipped { get; set; } = new();
+    // The opposite: trees and hot spots you marked as good finds, keyed the same way. Counts toward the calibration labels.
+    public List<string> Accepted { get; set; } = new();
+    // Title of the post you are writing (not part of the body markdown, copied with its own button).
+    public string Title { get; set; } = "";
     private string? path;
 
     // Undo history: a copy of the blocks and skips from before each change (most recent last). Not saved to disk.
@@ -99,13 +103,14 @@ public class Draft
     public bool CanUndo => undoStack.Count > 0;
     public bool CanRedo => redoStack.Count > 0;
 
-    private record State(List<Block> Blocks, List<string> Skipped);
-    private string Snapshot() => JsonSerializer.Serialize(new State(Blocks, Skipped));
+    private record State(List<Block> Blocks, List<string> Skipped, List<string>? Accepted);
+    private string Snapshot() => JsonSerializer.Serialize(new State(Blocks, Skipped, Accepted));
     private void Restore(string snap)
     {
         State? s = JsonSerializer.Deserialize<State>(snap);
         Blocks = s?.Blocks ?? new();
         Skipped = s?.Skipped ?? new();
+        Accepted = s?.Accepted ?? new();
     }
 
     public bool IsSkipped(string link) => !string.IsNullOrEmpty(link) && Skipped.Contains(link);
@@ -115,7 +120,18 @@ public class Draft
     {
         if (string.IsNullOrEmpty(link)) return;
         Checkpoint();
-        if (!Skipped.Remove(link)) Skipped.Add(link);
+        if (!Skipped.Remove(link)) { Skipped.Add(link); Accepted.Remove(link); }
+        Save();
+    }
+
+    public bool IsAccepted(string link) => !string.IsNullOrEmpty(link) && Accepted.Contains(link);
+
+    // Mark a tree or hot spot as accepted, or take the mark off again. Accepting clears a skip on the same thing.
+    public void ToggleAccept(string link)
+    {
+        if (string.IsNullOrEmpty(link)) return;
+        Checkpoint();
+        if (!Accepted.Remove(link)) { Accepted.Add(link); Skipped.Remove(link); }
         Save();
     }
 
@@ -149,13 +165,22 @@ public class Draft
         return true;
     }
 
-    // Folder for drafts and settings: %AppData%\SrdDesk.
+    // Folder for drafts and settings: %AppData%\Kettle.
     public static string DataFolder
     {
         get
         {
-            // SRDDESK_DATA points the app at another folder (used by the automatic screenshots so they leave your data alone).
-            string dir = Environment.GetEnvironmentVariable("SRDDESK_DATA") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SrdDesk");
+            // KETTLE_DATA points the app at another folder (used by the automatic screenshots so they leave your data alone).
+            string? custom = Environment.GetEnvironmentVariable("KETTLE_DATA");
+            if (custom != null) { Directory.CreateDirectory(custom); return custom; }
+            string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string dir = Path.Combine(roaming, "Kettle");
+            // The app used to be called SRD Desk: its folder moves over once, the first time Kettle runs.
+            string old = Path.Combine(roaming, "SrdDesk");
+            if (!Directory.Exists(dir) && Directory.Exists(old))
+            {
+                try { Directory.Move(old, dir); } catch (Exception) { /* left in place; Kettle starts with a fresh folder */ }
+            }
             Directory.CreateDirectory(dir);
             return dir;
         }
@@ -183,12 +208,16 @@ public class Draft
     // Goes up by one on every change, so callers can tell when to recompute something from the blocks.
     [JsonIgnore] public int Changes { get; private set; }
 
+    // Runs after every save; the Desk uses it to keep the labels file for calibrate.js up to date.
+    [JsonIgnore] public Action? Saved;
+
     public void Save()
     {
         Changes++;
         if (path == null) return;
         try { File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true })); }
         catch (Exception) { /* the folder is not writable: the draft just will not persist */ }
+        Saved?.Invoke();
     }
 
     // Whole post as markdown: chains are separated by an empty bullet, text notes and headers by a blank line.
@@ -372,6 +401,8 @@ public class TemplateItem
 public class AppSettings
 {
     public List<string> Recent { get; set; } = new();
+    // What the start screen shows for each recent file (title, subreddit, meter), by file path. Filled when a file is opened.
+    public Dictionary<string, RecentInfo> RecentInfo { get; set; } = new();
     public List<string> HeaderPresets { get; set; } = new() { "Crowd magnet", "Duel", "Heated", "Background", "Aftermath" };
     // Presets that are added in bold (headers are plain otherwise). Kept apart from HeaderPresets so older settings files still load.
     public List<string> BoldPresets { get; set; } = new();
@@ -382,6 +413,9 @@ public class AppSettings
     public int ChainLimit { get; set; } = 0;
     // Put the comment a chain replies to on top of the chain, so readers see what started it.
     public bool ChainContext { get; set; } = true;
+    // Folders Kettle checks for new thread exports, and inbox files you dismissed ("path|write time ticks").
+    public List<string> WatchFolders { get; set; } = new();
+    public List<string> InboxDismissed { get; set; } = new();
 
     private static string FilePath => Path.Combine(Draft.DataFolder, "settings.json");
 
@@ -423,12 +457,38 @@ public class AppSettings
         return Template.Count;
     }
 
+    // The title, subreddit and meter of a recent file; read from the file once when it is missing (older settings files).
+    public RecentInfo? InfoFor(string file)
+    {
+        if (RecentInfo.TryGetValue(file, out RecentInfo? known)) return known;
+        try { RecentInfo[file] = Describe(ThreadData.Load(file)); Save(); return RecentInfo[file]; }
+        catch (Exception) { return null; }
+    }
+
+    // The short description of a loaded thread for the recent list.
+    public static RecentInfo Describe(ThreadData data) => new()
+    {
+        Title = data.ShortTitle, Sub = data.Subreddit,
+        Pct = data.Meter?.Pct, Plus = data.Meter?.Plus ?? false, Tier = data.Meter?.Text ?? "",
+    };
+
     // Put a file at the top of the recent list (newest first, at most 10, missing files dropped).
     public void Touch(string file)
     {
         Recent.RemoveAll(f => string.Equals(f, file, StringComparison.OrdinalIgnoreCase) || !File.Exists(f));
         Recent.Insert(0, file);
+        RecentInfo = RecentInfo.Where(kv => Recent.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
         if (Recent.Count > 10) Recent.RemoveRange(10, Recent.Count - 10);
         Save();
     }
+}
+
+// One line of the start screen's recent list.
+public class RecentInfo
+{
+    public string Title { get; set; } = "";
+    public string Sub { get; set; } = "";
+    public double? Pct { get; set; }
+    public bool Plus { get; set; }
+    public string Tier { get; set; } = "";
 }

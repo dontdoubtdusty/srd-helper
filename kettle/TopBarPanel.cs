@@ -24,7 +24,7 @@ public static class TopBarPanel
         if (Assets.MascotWidth(26f) > 0f) ImGui.SameLine(0, 8);
         ImGui.PushFont(Fonts.Label);
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(Theme.Acc, "SRD DESK");
+        ImGui.TextColored(Theme.Acc, "KETTLE");
         ImGui.PopFont();
         ImGui.SameLine(0, 14);
 
@@ -43,7 +43,11 @@ public static class TopBarPanel
         float origW = ImGui.CalcTextSize("Original thread").X + pad;
         float guideW = ImGui.CalcTextSize("Guide").X + pad;
         float optW = ImGui.CalcTextSize("Options").X + pad;
-        float rightX = w - 14f - openW - (data != null ? origW + 8f : 0f) - guideW - optW - 16f;
+        // "N new" only while a thread is open; the start screen lists them itself.
+        string newLabel = d.Inbox.Items.Count + " new";
+        bool showNew = data != null && d.Inbox.Items.Count > 0;
+        float newW = showNew ? ImGui.CalcTextSize(newLabel).X + pad + 8f : 0f;
+        float rightX = w - 14f - openW - (data != null ? origW + 8f : 0f) - guideW - optW - 16f - newW;
         float statusW = 230f;
         float titleW = Math.Max(60f, rightX - statusW - ImGui.GetCursorPosX() - 10f);
         ImGui.AlignTextToFramePadding();
@@ -60,6 +64,14 @@ public static class TopBarPanel
         ImGui.TextColored(Theme.Acc, Fit(d.Status, statusW - 10f));
         ImGui.PopFont();
         ImGui.SameLine(rightX);
+        if (showNew)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Button, Theme.WithAlpha(Theme.Hot, 0.35f));
+            if (ImGui.Button(newLabel)) d.ShowInbox = true;
+            ImGui.PopStyleColor();
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("New thread exports in your watched folders");
+            ImGui.SameLine();
+        }
         if (ImGui.Button("Open file...")) d.WantOpenDialog = true;
         if (data != null)
         {
@@ -68,7 +80,7 @@ public static class TopBarPanel
         }
         ImGui.SameLine();
         if (ImGui.Button("Guide")) d.ShowGuide = !d.ShowGuide;
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("How to use SRD Desk (F1)");
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("How to use Kettle (F1)");
         ImGui.SameLine();
         if (ImGui.Button("Options")) d.OpenOptions = true;
 

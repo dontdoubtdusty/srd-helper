@@ -22,7 +22,9 @@ public static class ChainBuilder
             List<string> paras = Regex.Split(it.Text, @"\n\n+")
                 .Select(p => Regex.Replace(p, @"\s+", " ").Trim())
                 .Where(p => p.Length > 0).ToList();
-            if (idx > 0) lines.Add(new string('>', Math.Min(prevLevel, level)));
+            // A deeper reply keeps the quote going. A sibling or a step back up gets a truly empty line, which starts
+            // a new quote block; a bare ">" there would glue it onto the previous comment as one comment with two paragraphs.
+            if (idx > 0) lines.Add(level > prevLevel ? new string('>', prevLevel) : "");
             if (it.Linked)
             {
                 // A linked quote is one line: the comment text is the link text.

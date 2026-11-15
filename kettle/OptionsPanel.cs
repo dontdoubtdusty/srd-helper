@@ -66,6 +66,23 @@ public static class OptionsPanel
         ImGui.PopTextWrapPos();
         ImGui.PopStyleColor();
 
+        // Folders checked for new thread exports.
+        ImGui.Dummy(new Vector2(0, 6));
+        Ui.Heading("Watched folders");
+        ImGui.PushStyleColor(ImGuiCol.Text, Theme.Mut);
+        ImGui.PushTextWrapPos(ImGui.GetWindowWidth() - 24f);
+        ImGui.TextUnformatted("Kettle checks these every " + (int)Inbox.ScanEvery + " seconds for new .srd.json exports and lists them under New threads. Opening one moves it into the threads folder below.");
+        ImGui.PopTextWrapPos();
+        ImGui.PopStyleColor();
+        foreach (string f in s.WatchFolders.ToList())
+        {
+            if (ImGui.SmallButton("remove##wf" + f)) d.RemoveWatchFolder(f);
+            ImGui.SameLine();
+            ImGui.TextUnformatted(f);
+            if (!Directory.Exists(f)) { ImGui.SameLine(); ImGui.TextColored(Theme.Hot, "(missing)"); }
+        }
+        if (ImGui.Button("Add folder...")) d.WantFolderDialog = true;
+
         // Where drafts are kept.
         ImGui.Dummy(new Vector2(0, 6));
         Ui.Heading("Saved data");
@@ -76,7 +93,7 @@ public static class OptionsPanel
         ImGui.PopTextWrapPos();
         ImGui.PushStyleColor(ImGuiCol.Text, Theme.Mut);
         ImGui.PushTextWrapPos(ImGui.GetWindowWidth() - 24f);
-        ImGui.TextUnformatted("Drafts are in the drafts folder (one file per thread); settings, header presets and the template are in settings.json.");
+        ImGui.TextUnformatted("Drafts are in the drafts folder (one file per thread), exports opened from New threads in the threads folder; settings, header presets and the template are in settings.json.");
         ImGui.PopTextWrapPos();
         ImGui.PopStyleColor();
         if (ImGui.Button("Open folder")) d.OpenFolder(Draft.DataFolder);

@@ -37,7 +37,7 @@ public class Program
         catch (Exception) { file = "(could not be saved)"; }
 
         const uint ErrorIcon = 0x10;
-        MessageBoxW(IntPtr.Zero, $"{e.Message}\n\nThe details were saved to:\n{file}", "SRD Desk crashed", ErrorIcon);
+        MessageBoxW(IntPtr.Zero, $"{e.Message}\n\nThe details were saved to:\n{file}", "Kettle crashed", ErrorIcon);
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]

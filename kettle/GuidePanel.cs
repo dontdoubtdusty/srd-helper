@@ -45,7 +45,7 @@ public static class GuidePanel
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1f);
         bool open = true;
-        bool visible = ImGui.Begin("SRD Desk guide", ref open, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoSavedSettings);
+        bool visible = ImGui.Begin("Kettle guide", ref open, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoSavedSettings);
         ImGui.PopStyleVar(2);
         if (!open) d.ShowGuide = false;
         if (visible) DrawContents(d);

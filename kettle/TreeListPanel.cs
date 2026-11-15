@@ -62,10 +62,12 @@ public static class TreeListPanel
         if (ImGui.InvisibleButton("tree" + t.Index, new Vector2(w, CardH))) d.SelectTree(t.Index);
         Vector2 q = new Vector2(p.X + w, p.Y + CardH);
         Vector2 after = ImGui.GetCursorScreenPos();
-        bool hover = ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(p, q);
+        // Still counts as hovered while a button is held down, or the skip button would vanish mid-click.
+        bool hover = ImGui.IsWindowHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem) && ImGui.IsMouseHoveringRect(p, q);
         bool on = t.Index == d.SelectedTree;
         // A skipped tree is drawn faded in place.
         bool skipped = d.TreeSkipped(t.Index);
+        bool accepted = d.TreeAccepted(t.Index);
         Vector4 F(Vector4 c) => skipped ? Theme.WithAlpha(c, c.W * 0.4f) : c;
 
         if (on)
@@ -82,18 +84,22 @@ public static class TreeListPanel
         ImGui.PushFont(Fonts.Label);
         if (hover)
         {
-            // On hover the score makes room for skip / unskip.
+            // On hover the score makes room for accept and skip (each turns into its undo when set).
             string label = skipped ? "unskip" : "skip";
-            float bw = ImGui.CalcTextSize(label).X + ImGui.GetStyle().FramePadding.X * 2f;
+            string aLabel = accepted ? "unaccept" : "accept";
+            float pad = ImGui.GetStyle().FramePadding.X * 2f;
+            float bw = ImGui.CalcTextSize(label).X + pad, aw = ImGui.CalcTextSize(aLabel).X + pad;
             ImGui.SetCursorScreenPos(new Vector2(q.X - 10f - bw, p.Y + 6f));
             if (ImGui.SmallButton(label + "##sk" + t.Index)) d.ToggleTreeSkip(t.Index);
+            ImGui.SetCursorScreenPos(new Vector2(q.X - 10f - bw - 4f - aw, p.Y + 6f));
+            if (ImGui.SmallButton(aLabel + "##ac" + t.Index)) d.ToggleTreeAccept(t.Index);
             ImGui.SetCursorScreenPos(after);
         }
         else
         {
-            string score = skipped ? "skipped" : Ui.ScoreText(root.Score);
+            string score = skipped ? "skipped" : accepted ? "accepted" : Ui.ScoreText(root.Score);
             Vector2 ss = ImGui.CalcTextSize(score);
-            dl.AddText(new Vector2(q.X - 12f - ss.X, p.Y + 10f), Theme.U(!skipped && root.Score < 0 ? Theme.Hot : Theme.Mut), score);
+            dl.AddText(new Vector2(q.X - 12f - ss.X, p.Y + 10f), Theme.U(accepted ? Theme.Ok : !skipped && root.Score < 0 ? Theme.Hot : Theme.Mut), score);
         }
 
         // Second line: the best hot spot (when there is one), then size, people, chains.

@@ -81,6 +81,14 @@ public static class ConsolePanel
     private static void DrawHot(Desk d, ThreadData data)
     {
         if (data.HotRows.Count == 0) { ImGui.Dummy(new Vector2(0, 6)); ImGui.TextColored(Theme.Mut, "  None found."); return; }
+        // Only the top 5 count by default; this line says so and switches to all of them and back.
+        if (data.FileHotCount > ThreadData.HotCap)
+        {
+            ImGui.TextColored(Theme.Mut, d.ShowAllHot ? "  All " + data.FileHotCount + " hot spots" : "  Top " + ThreadData.HotCap + " of " + data.FileHotCount + " hot spots");
+            ImGui.SameLine();
+            if (Ui.Link((d.ShowAllHot ? "Top " + ThreadData.HotCap + " only" : "Show all") + "##allhot")) d.ToggleAllHot();
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Below #5 the spots were mostly skipped in your labelled threads, so they are hidden by default.");
+        }
         if (!ImGui.BeginTable("hot", 6, TableFlags, Vector2.Zero)) return;
         // Why stretches and clips, so the buttons on the right always stay visible.
         foreach (string c in new[] { "#", "Head", "Score", "Drama" }) ImGui.TableSetupColumn(c, ImGuiTableColumnFlags.WidthFixed, 0f);
@@ -110,6 +118,12 @@ public static class ConsolePanel
             // Skipping a whole tree covers its spots; those are taken back from the tree, not here.
             if (byTree) ImGui.TextColored(Theme.Mut, "tree skipped");
             else if (ImGui.SmallButton((skipped ? "unskip" : "skip") + "##hs" + n.Id)) d.Draft.ToggleSkip(n.Link);
+            if (!skipped)
+            {
+                ImGui.SameLine();
+                if (d.SpotAccepted(n) && !d.Draft.IsAccepted(n.Link)) ImGui.TextColored(Theme.Ok, "tree accepted");
+                else if (ImGui.SmallButton((d.Draft.IsAccepted(n.Link) ? "unaccept" : "accept") + "##hc" + n.Id)) d.Draft.ToggleAccept(n.Link);
+            }
             if (skipped) ImGui.PopStyleVar();
         }
         ImGui.EndTable();

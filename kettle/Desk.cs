@@ -16,6 +16,7 @@ public class Desk
     public readonly HashSet<int> Linked = new();
     public string ConsoleTab = "chains";
     public bool HotTreesOnly = true;                  // tree list: only trees with a hot spot (version 2 files)
+    public bool ShowAllHot;                           // every hot spot the export holds, not only the top 5
     public bool HeaderBold;                           // Header menu: add custom and numbered headers in bold
     public bool SourceTab;
     public readonly HashSet<string> Editing = new();  // draft blocks open in the markdown editor
@@ -39,6 +40,50 @@ public class Desk
     {
         if (statusLeft > 0) { statusLeft -= dt; if (statusLeft <= 0) Status = ""; }
         if (FlashLeft > 0) FlashLeft -= dt;
+        Inbox.Tick(dt, Settings);
+    }
+
+    public readonly Inbox Inbox = new();
+    public bool WantFolderDialog;                     // Options: Add folder was pressed (the loop shows the dialog)
+    public bool ShowInbox;                            // top bar: the New threads list is open
+
+    // Start watching a folder for thread exports.
+    public void AddWatchFolder(string folder)
+    {
+        if (Settings.WatchFolders.Contains(folder, StringComparer.OrdinalIgnoreCase)) return;
+        Settings.WatchFolders.Add(folder);
+        Settings.Save();
+        Inbox.Refresh();
+        SetStatus("Watching " + Path.GetFileName(folder.TrimEnd('\\', '/')));
+    }
+
+    // Stop watching a folder (its files stay where they are).
+    public void RemoveWatchFolder(string folder)
+    {
+        Settings.WatchFolders.RemoveAll(f => string.Equals(f, folder, StringComparison.OrdinalIgnoreCase));
+        Settings.Save();
+        Inbox.Refresh();
+    }
+
+    // Open a new thread from the inbox: move it into Kettle's threads folder, then open that copy.
+    public void OpenFromInbox(Inbox.Item it)
+    {
+        string? moved = Inbox.Take(it, out string why);
+        Inbox.Items.Remove(it);
+        Inbox.Refresh();
+        if (moved == null) { SetStatus(why); return; }
+        ShowInbox = false;
+        Open(moved);
+    }
+
+    // Hide an inbox file without opening it (a newer export of the same thread still shows up).
+    public void DismissFromInbox(Inbox.Item it)
+    {
+        Settings.InboxDismissed.Add(Inbox.DismissKey(it));
+        if (Settings.InboxDismissed.Count > 500) Settings.InboxDismissed.RemoveRange(0, Settings.InboxDismissed.Count - 500);
+        Settings.Save();
+        Inbox.Items.Remove(it);
+        Inbox.Refresh();
     }
 
     // The longest chain to add: the Options value, or the one stored in the thread file.
@@ -55,12 +100,17 @@ public class Desk
             Data = data;
             FilePath = path;
             Draft = Draft.LoadFor(data.ThreadUrl, Settings);
+            Draft.Saved = SaveLabels;
+            SaveLabels();
             SelectedTree = 0;
             Folded.Clear(); Expanded.Clear(); Picked.Clear(); Linked.Clear(); Editing.Clear(); Trimming.Clear();
+            ShowAllHot = false;
             ConsoleTab = data.HotRows.Count > 0 ? "hot" : "chains";
             HotTreesOnly = data.HotRows.Count > 0;
             SelectedTree = data.HotRows.Count > 0 ? data.RootOf[data.HotRows[0].Id] : 0;
             Settings.Touch(path);
+            Settings.RecentInfo[path] = AppSettings.Describe(data);
+            Settings.Save();
             SetStatus("Opened " + Path.GetFileName(path));
             return true;
         }
@@ -120,6 +170,16 @@ public class Desk
         SetStatus(added > 0 ? "Added " + added + " chains" : "No new chains");
     }
 
+    // Switch between the top 5 hot spots and all of them; the tree list, chips and labels follow.
+    public void ToggleAllHot()
+    {
+        if (Data == null) return;
+        ShowAllHot = !ShowAllHot;
+        Data.Rank(ShowAllHot ? 0 : ThreadData.HotCap);
+        SaveLabels();
+        SetStatus(ShowAllHot ? "Showing all " + Data.HotRows.Count + " hot spots" : "Showing the top " + Data.HotRows.Count + " hot spots");
+    }
+
     // A tree is skipped when its top comment is in the draft's skip list.
     // The key is "tree " + the link, so a hot spot that starts at the top comment can be skipped on its own.
     public bool TreeSkipped(int tree) => Data != null && tree >= 0 && tree < Data.Roots.Count && Draft.IsSkipped("tree " + Data.Roots[tree].Link);
@@ -133,6 +193,18 @@ public class Desk
         if (Data == null || tree < 0 || tree >= Data.Roots.Count) return;
         Draft.ToggleSkip("tree " + Data.Roots[tree].Link);
         SetStatus(TreeSkipped(tree) ? "Tree skipped" : "Tree back in");
+    }
+
+    // A tree is accepted the same way (key "tree " + link), and a hot spot on its own or through its tree.
+    public bool TreeAccepted(int tree) => Data != null && tree >= 0 && tree < Data.Roots.Count && Draft.IsAccepted("tree " + Data.Roots[tree].Link);
+    public bool SpotAccepted(Node n) => Draft.IsAccepted(n.Link) || (Data != null && Data.RootOf.TryGetValue(n.Id, out int t) && TreeAccepted(t));
+
+    // Accept or un-accept a tree (which also covers every hot spot in it).
+    public void ToggleTreeAccept(int tree)
+    {
+        if (Data == null || tree < 0 || tree >= Data.Roots.Count) return;
+        Draft.ToggleAccept("tree " + Data.Roots[tree].Link);
+        SetStatus(TreeAccepted(tree) ? "Tree accepted" : "Accept removed");
     }
 
     // Label for the Add all button: hot spots when the file has them.
@@ -165,9 +237,14 @@ public class Desk
             // Hot spots you looked at and decided against (skipped themselves or in a skipped tree).
             var skipped = Data.HotRows.Where(SpotSkipped).Select(n => new { link = n.Link, author = n.Author, d = n.D, hot = n.Hot,
                 why = Draft.IsSkipped(n.Link) ? "spot" : "tree" }).ToList();
-            var labels = new { thread = Data.ThreadUrl, title = Data.Title, version = Data.Version, savedAt = DateTime.UtcNow.ToString("o"), used, skipped };
-            string folder = Path.Combine(global::Draft.DataFolder, "drafts");
-            File.WriteAllText(Path.Combine(folder, global::Draft.KeyOf(Data.ThreadUrl) + ".labels.json"),
+            // Hot spots you marked as good finds (accepted themselves or in an accepted tree), whether or not they are in the draft.
+            var accepted = Data.HotRows.Where(SpotAccepted).Select(n => new { link = n.Link, author = n.Author, d = n.D, hot = n.Hot,
+                why = Draft.IsAccepted(n.Link) ? "spot" : "tree" }).ToList();
+            var labels = new { thread = Data.ThreadUrl, title = Data.Title, version = Data.Version, savedAt = DateTime.UtcNow.ToString("o"), used, accepted, skipped };
+            string file = Path.Combine(global::Draft.DataFolder, "drafts", global::Draft.KeyOf(Data.ThreadUrl) + ".labels.json");
+            // No file for threads you have not picked, accepted or skipped anything in yet (but an old one is still emptied).
+            if (used.Count == 0 && skipped.Count == 0 && accepted.Count == 0 && !File.Exists(file)) return;
+            File.WriteAllText(file,
                 System.Text.Json.JsonSerializer.Serialize(labels, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception) { /* labels are a bonus; never block copying */ }

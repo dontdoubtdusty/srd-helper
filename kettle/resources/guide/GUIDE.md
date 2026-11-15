@@ -1,14 +1,14 @@
-# SRD Desk guide
+# Kettle guide
 
 ## Welcome
 > ![](poppy-wave.png) Hi, I'm Poppy! I'll be your guide. Look out for me: I pop up wherever there is something worth knowing.
 
-SRD Desk helps you build a quote-chain post (an "SRD" post) from a Reddit thread. The work is split in two halves:
+Kettle helps you build a quote-chain post (an "SRD" post) from a Reddit thread. The work is split in two halves:
 
 - The SRD Helper userscript runs in your browser. On old.reddit.com it reads the thread you already have open, scores every comment for drama, lights up the hot spots and exports the whole loaded thread to a file. On new reddit it shows a quick estimate and a button to open the thread in old reddit.
-- SRD Desk (this app) opens that file. It starts on the hot spots; you pick chains, arrange them under headers, and copy the finished markdown.
+- Kettle (this app) opens that file. It starts on the hot spots; you pick chains, arrange them under headers, and copy the finished markdown.
 
-![SRD Desk with the sample thread open: trees on the left, the thread in the middle, the draft on the right.](overview.png)
+![Kettle with the sample thread open: trees on the left, the thread in the middle, the draft on the right.](overview.png)
 
 > ![](poppy-popcorn.png) Everything here is read-only toward Reddit. The userscript only reads the page that is already open, and this app never goes online at all. Nothing is posted for you and nothing is fetched. You do the posting. Now, who wants popcorn?
 
@@ -17,7 +17,7 @@ The pages on the left follow the order you will use them: Quick start, then the 
 ## Quick start
 This walks through the sample thread that ships with the app (an invented argument about a wedding seating chart), so you can follow along without Reddit. The file is `samples\example.srd.json`.
 
-1. Start SRD Desk. You see the welcome screen.
+1. Start Kettle. You see the welcome screen.
 2. Press Open file... and choose `samples\example.srd.json` (or drag the file onto the window).
 3. The thread opens on its best hot spot. The meter chip in the top bar says 50% Promising. The list on the left shows the five trees that hold a hot spot, best first (ALL shows all nine).
 4. Press Header, then Giant drama thread #1: at the top of the menu. The header line appears in the draft on the right.
@@ -43,7 +43,7 @@ On old.reddit.com every thread gets the full panel at the right edge. On new red
 - **To load:** a read-only list of the "load more comments" buttons still on the page, the ones worth pressing first. A button is worth pressing when the replies it hides sit under a comment that is already a fight: a negative, controversial or heated comment, one with three or more people or three or more levels below it, or one inside a hot spot. Each row says why. The worthwhile buttons (worth 12 or more, at least 3 replies; `loadMoreWorth` at the top of the userscript) are lit up in bright yellow and pink on the page. The panel never scrolls or clicks for you; find the lit button and press it yourself, then press Refresh.
 - **Refresh:** read the page again (it also happens by itself when the page changes).
 - **Expand all:** opens collapsed comments so they can be read. It only clicks when you press it, once per collapsed comment, and it never presses "load more".
-- **Export for app:** downloads a file named `srd-` plus the thread id, ending in `.srd.json`. This is what SRD Desk opens. It holds the whole loaded thread with a drama score on every comment, the hot spots, the category winners and the meter result.
+- **Export for app:** downloads a file named `srd-` plus the thread id, ending in `.srd.json`. This is what Kettle opens. It holds the whole loaded thread with a drama score on every comment, the hot spots, the category winners and the meter result.
 
 If something goes wrong while reading the page, a red box at the top of the panel says what happened, instead of the panel quietly showing old numbers.
 
@@ -62,15 +62,18 @@ New reddit loads only part of a thread and hides most downvoted replies, so it g
 
 ## In the app
 ### Opening a thread
-Drag a `.srd.json` file onto the window, press Open file..., or pass it on the command line. Recently opened files are listed on the welcome screen. If you re-export the same thread later, the draft you made for it comes back, because drafts are saved per thread.
+Drag a `.srd.json` file onto the window, press Open file..., or pass it on the command line. Recently opened files are listed on the welcome screen with the thread title, the subreddit and the meter reading. If you re-export the same thread later, the draft you made for it comes back, because drafts are saved per thread.
+
+### New threads
+Add your Downloads folder (or wherever exports land) under Options > Watched folders. Kettle checks it every 10 seconds and lists new exports under **New threads** on the welcome screen, best drama first, with the subreddit and meter reading. While a thread is open, a **N new** button in the top bar shows the same list. Click a thread to open it: the file moves into Kettle's own `threads` folder, so the list only ever holds what you have not opened. If you exported the same thread twice, only the newest file is listed. **dismiss** hides a file without opening or moving it.
 
 ### The layout
 ![The bottom console: tabs for chains, crowd magnets, duels, OP and heated comments.](console.png)
 
 - **Top bar:** Poppy, the meter result, the thread title (hover it to see the whole title), a status message, Open file..., Original thread, Guide and Options.
-- **Trees (left):** HOT lists the trees that hold a hot spot, best first; ALL lists every tree in thread order (a whole thread can have hundreds). Each card shows the top commenter, their score, the best hot spot in it, the size and the number of people. Click a card to open it. Hover a card for skip: a tree you decided not to use stays where it is, faded, with "skipped" in place of its score (hover again for unskip). Skip tree above the thread does the same.
+- **Trees (left):** HOT lists the trees that hold a hot spot, best first; ALL lists every tree in thread order (a whole thread can have hundreds). Each card shows the top commenter, their score, the best hot spot in it, the size and the number of people. Click a card to open it. Hover a card for accept and skip. Skip: a tree you decided not to use stays where it is, faded, with "skipped" in place of its score (hover again for unskip). Accept: a tree you judge a good find is marked "accepted" in green. Accept tree and Skip tree above the thread do the same. Accepting clears a skip and the other way round.
 - **Thread (middle):** the selected tree, nested. The arrow folds a comment. Usernames are colored badges, the same color for the same person everywhere. Scores are small, and red when negative. A hot spot starts with a HOT chip and a colored edge (red for the top three). A comment that is already in your draft shows a green "used" chip.
-- **Console (bottom):** tables of what was found. Hot spots comes first: rank, who started it, the drama score and what it is made of. Each row has a jump button that scrolls the thread to that comment, and Add chain (or "in draft" once it is there), and skip for a hot spot you looked at and decided against. Skipped rows are faded in place; the hot spots of a skipped tree say "tree skipped" (unskip the tree to bring them back). Add all hot spots leaves skipped ones out. Skips are saved with the draft and Undo covers them.
+- **Console (bottom):** tables of what was found. Hot spots comes first: rank, who started it, the drama score and what it is made of. Each row has a jump button that scrolls the thread to that comment, and Add chain (or "in draft" once it is there), and skip for a hot spot you looked at and decided against, or accept for one you judge a good find (it can be accepted without being added to the draft). Skipped rows are faded in place; the hot spots of a skipped tree say "tree skipped" (unskip the tree to bring them back). Add all hot spots leaves skipped ones out. Skips are saved with the draft and Undo covers them.
 - **Draft (right):** your post in the making.
 
 ### Picking comments
@@ -92,9 +95,10 @@ Each piece of your post is a card. Buttons on the card: ^ and v move it, edit op
 
 - **Header:** adds a header line at the end of the draft, plain by default. The popup starts with two numbered headers, Giant drama thread #N: and Subthread N: (the numbers count what is already in the draft, and Subthread starts again at 1 under each giant thread). Below them are your presets (click to add; B makes that preset bold or plain; x removes it), a Custom header box (what you type is added and remembered), a bold box for custom and numbered headers, and the template buttons. To switch a header in the draft between bold and plain, press edit on it and tick bold. Add the header first, then the chains that belong under it, then the next header.
 - **Add text:** a free text block for your own sentences.
+- **Post title:** the box above the buttons holds the title of your post. It is saved with the draft; **Copy title** puts it on the clipboard (it is not part of the Copy body).
 - **Preview / Source:** Preview shows the cards with badges. Source shows exactly the markdown that Copy puts on your clipboard.
 - **Undo and Redo:** the buttons at the top right of the draft (Alt+Z undoes, Alt+Shift+Z redoes). They cover every change to the draft: adding, removing, moving, editing and clearing. Typing in a card counts as one step per edit. The history is kept while the thread is open, not after you close the app.
-- **Copy:** copies the whole post. It also writes a small labels file next to the draft (`drafts\<thread id>.labels.json`) listing which comments you used and their drama scores; see Tips. **Clear** empties the draft after asking.
+- **Copy:** copies the whole post. The app also keeps a small labels file next to the draft (`drafts\<thread id>.labels.json`) listing which comments you used and which hot spots you accepted and skipped, with their drama scores; it updates by itself on every change. See Tips. **Clear** empties the draft after asking.
 
 ![The Header popup: numbered headers, presets with their bold switch, a custom box and the template buttons.](header-menu.png)
 
@@ -126,7 +130,7 @@ Every comment gets a drama score for itself and the replies under it. It goes up
 - six or more replies within one hour;
 - replies still hidden behind "load more" (a little).
 
-A score on its own favors big trees, so the hot spots are picked differently: a fight counts as one hot spot when it scores higher as a whole than its separate branches would together; otherwise its branches compete on their own. The 15 best are ranked HOT #1 to #15. A hot spot needs at least three levels, two people and four comments. The weights are `DRAMA` at the top of the userscript.
+A score on its own favors big trees, so the hot spots are picked differently: a fight counts as one hot spot when it scores higher as a whole than its separate branches would together; otherwise its branches compete on their own. The userscript ranks the 15 best HOT #1 to #15. Kettle counts only the top 5 (in labelled threads the spots below #5 were mostly skipped); **Show all** above the Hot spots table brings back the rest, and **Top 5 only** hides them again. A hot spot needs at least three levels, two people and four comments. The weights are `DRAMA` at the top of the userscript.
 
 ### Chains
 A chain is the older, stricter rule, still shown in its own tab: a negative comment with several levels of replies and at least two people in it. The Chains tab in the console lists them with the head comment, its score, the number of levels, the number of comments and the number of people.
@@ -163,7 +167,8 @@ Open Options from the top bar. Changes apply at once and are saved.
 - **Colors:** four schemes. Dusk is the default dark one; Mist, Paper and Sage are light.
 - **Text size:** Small, Default, Large or Extra large.
 - **Chains:** the longest chain that + chain and Add all chains will build. By default it uses the limit stored in each thread file, normally 6. The Chains table in the console is unaffected, since the userscript works it out. **Show what the chain replies to** (on by default) puts the parent comment on top of chains that start on a reply.
-- **Saved data:** where drafts, presets and the template are kept (`%AppData%\SrdDesk`), with a button to open the folder.
+- **Watched folders:** folders Kettle checks for new exports (see New threads). **Add folder...** picks one, **remove** stops watching it.
+- **Saved data:** where drafts, presets, the template and opened exports (`threads`) are kept (`%AppData%\Kettle`), with a button to open the folder.
 
 ![The four color schemes.](themes.png)
 

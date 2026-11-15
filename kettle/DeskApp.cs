@@ -10,7 +10,7 @@ using Image = Raylib_cs.Image;
 // (command line, drag and drop, the Open dialog), and runs the optional screenshot test script.
 public sealed class DeskApp
 {
-    public const string Version = "SRD Desk 0.1";
+    public const string Version = "Kettle 0.5.0";
 
     private const float TopH = 44f;
     private const float ListW = 290f;
@@ -50,6 +50,7 @@ public sealed class DeskApp
             desk.Tick(Raylib.GetFrameTime());
             HandleDroppedFiles();
             if (desk.WantOpenDialog) { desk.WantOpenDialog = false; ShowOpenDialog(); }
+            if (desk.WantFolderDialog) { desk.WantFolderDialog = false; ShowFolderDialog(); }
             if (ShotPath != null && frame == 3 && Script != null) RunScript(Script);
             if (Raylib.IsKeyPressed(KeyboardKey.F1)) desk.ShowGuide = !desk.ShowGuide;
             HandleUndoKeys();
@@ -110,6 +111,7 @@ public sealed class DeskApp
         ConsolePanel.Draw(desk, new Vector2(0, h - consoleH), new Vector2(mainW, consoleH));
         DraftPanel.Draw(desk, new Vector2(mainW, topH), new Vector2(draftW, bodyH));
         OptionsPanel.Draw(desk, w, h);
+        InboxPanel.DrawPopup(desk, w);
         GuidePanel.Draw(desk, w, h);
     }
 
@@ -139,6 +141,18 @@ public sealed class DeskApp
             InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads",
         };
         if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK) desk.Open(dialog.FileName);
+    }
+
+    // The standard Windows folder picker, for Options > Watched folders (starts in Downloads, where exports land).
+    private void ShowFolderDialog()
+    {
+        using var dialog = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "Pick a folder to watch for thread exports",
+            UseDescriptionForTitle = true,
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads",
+        };
+        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK) desk.AddWatchFolder(dialog.SelectedPath);
     }
 
     // Test hook: a real mouse click at a window position (used by --script click:x:y). The cursor moves at frame 4,
@@ -208,6 +222,14 @@ public sealed class DeskApp
                 case "labels": desk.SaveLabels(); break;
                 case "text": { Block b = desk.Draft.AddText(); b.Md = "A note of my own."; break; }
                 case "skiptree": desk.ToggleTreeSkip(n); break;
+                case "accepttree": desk.ToggleTreeAccept(n); break;
+                case "accepthot": if (n < (desk.Data?.HotRows.Count ?? 0)) desk.Draft.ToggleAccept(desk.Data!.HotRows[n].Link); break;
+                case "title": desk.Draft.Title = arg; desk.Draft.Save(); break;
+                case "allhot": desk.ToggleAllHot(); break;
+                // watch:<folder> (the rest of the step, colons included) adds a watched folder and scans it at once.
+                case "watch": desk.AddWatchFolder(step[6..]); desk.Inbox.ScanNow(desk.Settings); break;
+                case "inbox": desk.ShowInbox = true; break;
+                case "openinbox": if (n < desk.Inbox.Items.Count) desk.OpenFromInbox(desk.Inbox.Items[n]); break;
                 case "skiphot": if (n < (desk.Data?.HotRows.Count ?? 0)) desk.Draft.ToggleSkip(desk.Data!.HotRows[n].Link); break;
                 // trimopen:block:quote opens trim mode; cut:block:quote:sentence cuts one sentence.
                 case "trimopen": { int.TryParse(parts.Length > 2 ? parts[2] : "", out int q); if (n < desk.Draft.Blocks.Count) desk.Trimming.Add(desk.Draft.Blocks[n].Id + ":" + q); break; }

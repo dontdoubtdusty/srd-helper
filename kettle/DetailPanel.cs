@@ -51,12 +51,19 @@ public static class DetailPanel
         bool skipped = d.TreeSkipped(d.SelectedTree);
         if (skipped) { ImGui.SameLine(0, 6); Ui.Chip("skipped", Theme.Mut); }
 
+        bool accepted = d.TreeAccepted(d.SelectedTree);
+        if (accepted) { ImGui.SameLine(0, 6); Ui.Chip("accepted", Theme.Ok); }
+
         string skipLabel = skipped ? "Unskip tree" : "Skip tree";
+        string acceptLabel = accepted ? "Unaccept tree" : "Accept tree";
         float pad = ImGui.GetStyle().FramePadding.X * 2f, gap = ImGui.GetStyle().ItemSpacing.X;
-        float skipW = ImGui.CalcTextSize(skipLabel).X + pad;
+        float skipW = ImGui.CalcTextSize(skipLabel).X + pad + gap + ImGui.CalcTextSize(acceptLabel).X + pad;
         float unfoldW = ImGui.CalcTextSize("Unfold all").X + pad;
         float foldW = ImGui.CalcTextSize("Fold replies").X + pad;
         ImGui.SameLine(ImGui.GetWindowWidth() - 22f - skipW - unfoldW - foldW - gap * 2f);
+        if (ImGui.Button(acceptLabel)) d.ToggleTreeAccept(d.SelectedTree);
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Mark this tree as a good find (its hot spots too). Goes into the calibration labels.");
+        ImGui.SameLine();
         if (ImGui.Button(skipLabel)) d.ToggleTreeSkip(d.SelectedTree);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Mark this tree as not used (its hot spots too). It stays in the list, faded.");
         ImGui.SameLine();
@@ -73,12 +80,23 @@ public static class DetailPanel
         Assets.DrawMascot(96f);
         ImGui.Dummy(new Vector2(0, 8));
         ImGui.PushFont(Fonts.Label);
-        ImGui.TextColored(Theme.Acc, "SRD DESK");
+        ImGui.TextColored(Theme.Acc, "KETTLE");
         ImGui.PopFont();
         ImGui.Dummy(new Vector2(0, 6));
         ImGui.TextWrapped("Drop a thread file (.srd.json) on this window, or press Open file. Export one from Reddit with the SRD Helper panel (old.reddit.com), button \"Export for app\".");
         ImGui.Dummy(new Vector2(0, 14));
         if (ImGui.Button("Open file...")) d.WantOpenDialog = true;
+        if (d.Inbox.Items.Count > 0)
+        {
+            ImGui.Dummy(new Vector2(0, 18));
+            Ui.Heading("New threads " + d.Inbox.Items.Count);
+            InboxPanel.DrawList(d);
+        }
+        else if (d.Settings.WatchFolders.Count == 0)
+        {
+            ImGui.Dummy(new Vector2(0, 6));
+            ImGui.TextColored(Theme.Mut, "Tip: Options > Watched folders lists new exports here as they arrive.");
+        }
         if (d.Settings.Recent.Count > 0)
         {
             ImGui.Dummy(new Vector2(0, 18));
@@ -86,10 +104,28 @@ public static class DetailPanel
             foreach (string f in d.Settings.Recent.ToList())
             {
                 if (!File.Exists(f)) continue;
-                if (ImGui.Selectable(Path.GetFileName(f) + "##" + f)) d.Open(f);
-                if (ImGui.IsItemHovered()) ImGui.SetTooltip(f);
+                DrawRecent(d, f);
             }
         }
+    }
+
+    // One recent file as two lines: the thread title, then the subreddit and the meter reading (the file name when it can not be read).
+    private static void DrawRecent(Desk d, string f)
+    {
+        RecentInfo? info = d.Settings.InfoFor(f);
+        Vector2 p = ImGui.GetCursorScreenPos();
+        float w = ImGui.GetContentRegionAvail().X, lh = ImGui.GetTextLineHeight();
+        if (ImGui.Selectable("##rc" + f, false, ImGuiSelectableFlags.None, new Vector2(0, lh * 2f + 6f))) d.Open(f);
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip(f);
+        ImDrawListPtr dl = ImGui.GetWindowDrawList();
+        dl.PushClipRect(p, new Vector2(p.X + w, p.Y + lh * 2f + 6f), true);
+        dl.AddText(new Vector2(p.X + 4f, p.Y + 1f), Theme.U(Theme.Tx), info?.Title is { Length: > 0 } ? info.Title : Path.GetFileName(f));
+        var parts = new List<string>();
+        if (info != null && info.Sub.Length > 0) parts.Add(info.Sub);
+        if (info?.Pct != null) parts.Add("drama " + Math.Round(info.Pct.Value, MidpointRounding.AwayFromZero) + "%" + (info.Plus ? "+" : "") + (info.Tier.Length > 0 ? " (" + info.Tier + ")" : ""));
+        else if (info != null) parts.Add("no meter reading");
+        if (parts.Count > 0) dl.AddText(new Vector2(p.X + 4f, p.Y + lh + 3f), Theme.U(Theme.Mut), string.Join("  ·  ", parts));
+        dl.PopClipRect();
     }
 
     // One comment, its replies below it indented, with a guide line down the replies.

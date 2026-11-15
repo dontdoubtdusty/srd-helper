@@ -30,6 +30,7 @@ public class Node
     // when it was written (seconds since 1970), replies still hidden behind "load more", and the numbers behind the score.
     public double D { get; set; }
     public int Hot { get; set; }
+    [JsonIgnore] public int FileHot;    // the rank the export gave it; Hot is cleared above the cap, this never is
     public long? T { get; set; }
     public int More { get; set; }
     public NodeMetrics? M { get; set; }
@@ -127,6 +128,24 @@ public class ThreadData
     [JsonIgnore] public Dictionary<string, Node> ByLink { get; } = new();
     [JsonIgnore] public Dictionary<int, Node> SpotOf { get; } = new();   // comment id -> the hot spot head it sits under
 
+    // The subreddit from the thread link ("r/name"), empty when the link has none.
+    [JsonIgnore] public string Subreddit
+    {
+        get { var m = System.Text.RegularExpressions.Regex.Match(ThreadUrl ?? "", @"/r/([^/]+)/", System.Text.RegularExpressions.RegexOptions.IgnoreCase); return m.Success ? "r/" + m.Groups[1].Value : ""; }
+    }
+
+    // The page title without the " : subreddit" tail old reddit adds.
+    [JsonIgnore] public string ShortTitle
+    {
+        get
+        {
+            string t = (Title ?? "").Trim();
+            int cut = t.LastIndexOf(" : ", StringComparison.Ordinal);
+            if (cut > 0 && t[(cut + 3)..].Trim().Length < 40) t = t[..cut].Trim();
+            return t.Length > 0 ? t : "(untitled thread)";
+        }
+    }
+
     // True when the file carries drama scores (version 2 and later).
     [JsonIgnore] public bool Scored => Version >= 2;
 
@@ -151,17 +170,38 @@ public class ThreadData
         {
             ChainRows.Add(new ChainRow { Head = n, Levels = Levels(n), Comments = Count(n), People = Flat(n).Select(x => x.Author).Distinct().Count() });
         }
-        HotRows.AddRange(Everything.Where(x => x.Hot > 0).OrderBy(x => x.Hot));
-        foreach (Node h in HotRows) foreach (Node x in Flat(h)) SpotOf[x.Id] = h;
+        foreach (Node n in Everything) n.FileHot = n.Hot;
         for (int i = 0; i < Roots.Count; i++)
         {
             List<Node> all = Flat(Roots[i]);
-            List<Node> hot = all.Where(x => x.Hot > 0).OrderBy(x => x.Hot).ToList();
-            Trees.Add(new TreeInfo
-            {
-                Index = i, Count = all.Count, People = all.Select(x => x.Author).Distinct().Count(), Chains = all.Count(x => x.Chain),
-                HotCount = hot.Count, BestHot = hot.Count > 0 ? hot[0].Hot : 0, BestD = hot.Count > 0 ? hot[0].D : 0,
-            });
+            Trees.Add(new TreeInfo { Index = i, Count = all.Count, People = all.Select(x => x.Author).Distinct().Count(), Chains = all.Count(x => x.Chain) });
+        }
+        Rank(HotCap);
+    }
+
+    // How many hot spots count by default. Labelled threads showed the spots you keep sit at the top of the
+    // ranking and the ones you skip below about #5, so the rest is mostly noise.
+    public const int HotCap = 5;
+
+    // How many hot spots the export holds (the userscript marks up to 15).
+    [JsonIgnore] public int FileHotCount { get; private set; }
+
+    // Count only the top `cap` hot spots as hot (0 = all of them): rebuilds the hot rows, the spot lookup and
+    // each tree's hot numbers, so every panel agrees on what is hot.
+    public void Rank(int cap)
+    {
+        foreach (Node n in Everything) n.Hot = cap <= 0 || n.FileHot <= cap ? n.FileHot : 0;
+        FileHotCount = Everything.Count(x => x.FileHot > 0);
+        HotRows.Clear();
+        SpotOf.Clear();
+        HotRows.AddRange(Everything.Where(x => x.Hot > 0).OrderBy(x => x.Hot));
+        foreach (Node h in HotRows) foreach (Node x in Flat(h)) SpotOf[x.Id] = h;
+        foreach (TreeInfo t in Trees)
+        {
+            List<Node> hot = Flat(Roots[t.Index]).Where(x => x.Hot > 0).OrderBy(x => x.Hot).ToList();
+            t.HotCount = hot.Count;
+            t.BestHot = hot.Count > 0 ? hot[0].Hot : 0;
+            t.BestD = hot.Count > 0 ? hot[0].D : 0;
         }
     }
 

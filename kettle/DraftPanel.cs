@@ -8,7 +8,7 @@ public static class DraftPanel
 {
     // Height of the tab and button area. The buttons wrap onto more lines in a narrow column, so it is measured
     // each frame and used by the next one.
-    private static float headH = 76f;
+    private static float headH = 104f;
     private static bool typing;               // a text box is being typed in: one undo step covers the whole edit
     private static Vector2 headerMenuPos;    // where the Header button is, so its popup opens right under it
 
@@ -47,7 +47,17 @@ public static class DraftPanel
         if (ImGui.Button("Redo")) d.RedoDraft();
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip("Redo (Alt+Shift+Z)");
+        // The title of the post: kept with the draft, not part of the copied body.
         ImGui.SetCursorPos(new Vector2(14, 36));
+        float copyW = ImGui.CalcTextSize("Copy title").X + pad;
+        ImGui.SetNextItemWidth(size.X - 28f - copyW - ImGui.GetStyle().ItemSpacing.X);
+        string postTitle = d.Draft.Title;
+        ImGui.BeginDisabled(d.Data == null);
+        if (ImGui.InputTextWithHint("##ptitle", "Post title", ref postTitle, 300)) { d.Draft.Title = postTitle; d.Draft.Save(); }
+        ImGui.SameLine();
+        if (ImGui.Button("Copy title")) { ImGui.SetClipboardText(d.Draft.Title); d.SetStatus("Title copied"); }
+        ImGui.EndDisabled();
+        ImGui.SetCursorPos(new Vector2(14, 66));
         float edge = pos.X + size.X - 12f;
         bool first = true;
         if (Ui.Flow("Add picked", edge, ref first)) d.AddPicked();
