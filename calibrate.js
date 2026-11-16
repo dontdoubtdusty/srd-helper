@@ -50,7 +50,7 @@ function skippedIds(file) {
   return (JSON.parse(fs.readFileSync(file, 'utf8')).skipped || []).map(s => idOf(s.link)).filter(Boolean);
 }
 
-let total = { linked: 0, present: 0, inSpot: 0, inTop: 0, skipped: 0, skippedTop: 0 };
+let total = { linked: 0, present: 0, inSpot: 0, inTop: 0, above: 0, skipped: 0, skippedTop: 0 };
 for (let f = 0; f < files.length; f += 2) {
   const thread = JSON.parse(fs.readFileSync(files[f], 'utf8'));
   const threadId = (thread.threadUrl.match(/comments\/([a-z0-9]+)/i) || [])[1];
@@ -66,7 +66,7 @@ for (let f = 0; f < files.length; f += 2) {
   console.log('\n== ' + path.basename(files[f]) + ' (export version ' + (thread.version || 1) + ')');
   console.log('   ' + all.length + ' comments in the file, ' + spots.length + ' hot spots, meter ' + Math.round(pct) + '% (file said ' + Math.round(thread.meter.pct || 0) + '%)');
   console.log('   ' + ids.size + ' linked comments in ' + path.basename(files[f + 1]));
-  let present = 0, inSpot = 0, inTop = 0;
+  let present = 0, inSpot = 0, inTop = 0, above = 0;
   ids.forEach(id => {
     const n = byId.get(id);
     if (!n) { console.log('   ' + id + '  not in export'); return; }
@@ -74,10 +74,13 @@ for (let f = 0; f < files.length; f += 2) {
     const s = spotOf.get(n);
     if (s) inSpot++;
     if (s && s.hot <= topN) inTop++;
+    // Not in a spot but heading one or more: the opener of a fight the model split into smaller disputes. Context, not a miss.
+    const below = s ? [] : U.flatten(n).filter(x => x !== n && x.hot).map(x => x.hot).sort((a, b) => a - b);
+    if (below.length) above++;
     console.log('   ' + id + '  drama ' + n.d.toFixed(0).padStart(3) + ', rank ' + String(sorted.indexOf(n) + 1).padStart(4) + ' of ' + all.length +
-      ', ' + (s ? 'in hot spot #' + s.hot : 'outside the hot spots') + (n.kids.length ? '' : ', no replies (end of a chain)') + ', score ' + n.score);
+      ', ' + (s ? 'in hot spot #' + s.hot : below.length ? 'opener above hot spot ' + below.map(h => '#' + h).join(', ') : 'outside the hot spots') + (n.kids.length ? '' : ', no replies (end of a chain)') + ', score ' + n.score);
   });
-  console.log('   found: ' + present + ' of ' + ids.size + ' in the file; ' + inSpot + ' inside a hot spot; ' + inTop + ' inside the top ' + topN);
+  console.log('   found: ' + present + ' of ' + ids.size + ' in the file; ' + inSpot + ' inside a hot spot; ' + above + ' opening one; ' + inTop + ' inside the top ' + topN);
   // Skipped spots: where the model ranks the disputes you looked at and decided against. High ranks mean it overrates them.
   const skipped = skippedIds(files[f + 1]);
   if (skipped.length) {
@@ -86,10 +89,10 @@ for (let f = 0; f < files.length; f += 2) {
     console.log('   skipped ' + skipped.length + ' hot spots, now ranked: ' + ranks.join(', ') + '; ' + top + ' inside the top ' + topN);
     total.skipped += skipped.length; total.skippedTop += top;
   }
-  total.linked += ids.size; total.present += present; total.inSpot += inSpot; total.inTop += inTop;
+  total.linked += ids.size; total.present += present; total.inSpot += inSpot; total.inTop += inTop; total.above += above;
 }
 if (files.length > 2) {
   console.log('\n== All threads: ' + total.present + ' of ' + total.linked + ' linked comments in the files; ' +
-    total.inSpot + ' inside a hot spot (' + (total.present ? Math.round(100 * total.inSpot / total.present) : 0) + '%); ' +
+    total.inSpot + ' inside a hot spot (' + (total.present ? Math.round(100 * total.inSpot / total.present) : 0) + '%); ' + total.above + ' opening one; ' +
     total.inTop + ' inside the top ' + topN + '.' + (total.skipped ? ' Skipped spots: ' + total.skippedTop + ' of ' + total.skipped + ' inside the top ' + topN + '.' : ''));
 }
