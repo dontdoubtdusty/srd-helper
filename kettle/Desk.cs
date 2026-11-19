@@ -121,6 +121,20 @@ public class Desk
         }
     }
 
+    // Close the open thread and go back to the start screen. The draft is already saved; a fresh, unsaved one takes its place.
+    public void CloseThread()
+    {
+        if (Data == null) return;
+        Data = null;
+        FilePath = null;
+        Draft = new Draft();
+        SelectedTree = 0;
+        Folded.Clear(); Expanded.Clear(); Picked.Clear(); Linked.Clear(); Editing.Clear(); Trimming.Clear();
+        ConfirmClear = false;
+        ScrollTo = -1;
+        SetStatus("Thread closed");
+    }
+
     public void SelectTree(int i)
     {
         if (Data == null || i < 0 || i >= Data.Roots.Count) return;
@@ -207,6 +221,14 @@ public class Desk
         SetStatus(TreeAccepted(tree) ? "Tree accepted" : "Accept removed");
     }
 
+    // Mark the open thread as one that became a real SRD post, or take the mark off.
+    public void TogglePosted()
+    {
+        if (Data == null) return;
+        Draft.TogglePosted();
+        SetStatus(Draft.Posted ? "Marked as posted" : "Posted mark removed");
+    }
+
     // Label for the Add all button: hot spots when the file has them.
     public string AddAllLabel => Data != null && Data.HotRows.Count > 0 ? "Add all hot spots" : "Add all chains";
 
@@ -240,10 +262,10 @@ public class Desk
             // Hot spots you marked as good finds (accepted themselves or in an accepted tree), whether or not they are in the draft.
             var accepted = Data.HotRows.Where(SpotAccepted).Select(n => new { link = n.Link, author = n.Author, d = n.D, hot = n.Hot,
                 why = Draft.IsAccepted(n.Link) ? "spot" : "tree" }).ToList();
-            var labels = new { thread = Data.ThreadUrl, title = Data.Title, version = Data.Version, savedAt = DateTime.UtcNow.ToString("o"), used, accepted, skipped };
+            var labels = new { thread = Data.ThreadUrl, title = Data.Title, version = Data.Version, savedAt = DateTime.UtcNow.ToString("o"), posted = Draft.Posted, used, accepted, skipped };
             string file = Path.Combine(global::Draft.DataFolder, "drafts", global::Draft.KeyOf(Data.ThreadUrl) + ".labels.json");
-            // No file for threads you have not picked, accepted or skipped anything in yet (but an old one is still emptied).
-            if (used.Count == 0 && skipped.Count == 0 && accepted.Count == 0 && !File.Exists(file)) return;
+            // No file for threads you have not picked, accepted, skipped or marked posted yet (but an old one is still emptied).
+            if (used.Count == 0 && skipped.Count == 0 && accepted.Count == 0 && !Draft.Posted && !File.Exists(file)) return;
             File.WriteAllText(file,
                 System.Text.Json.JsonSerializer.Serialize(labels, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
         }

@@ -5,7 +5,7 @@ userscript, shows where the fights are, and builds the post with you. Hot spots 
 time, a draft with a username badge on every quote, trimming, headers, a template, and a New threads list that picks up
 fresh exports by itself.
 
-![Kettle with the sample thread open: trees on the left, the thread in the middle, the draft on the right](docs/screenshot.png)
+![Kettle with the sample thread open: trees on the left, the thread in the middle, the draft on the right, New threads open at the top](docs/screenshot.png)
 
 ## Install
 There is no download yet; Kettle runs on the owner's PC only.

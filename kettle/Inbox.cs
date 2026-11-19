@@ -95,12 +95,40 @@ public sealed class Inbox
         return best.Values.OrderByDescending(x => x.Info.Pct ?? -1).ThenByDescending(x => x.Written).ToList();
     }
 
-    // The .srd.json files in a folder (none when the folder is missing or unreadable).
+    // Thread exports in a folder (none when the folder is missing or unreadable). Browsers rename a second download
+    // of the same file, so "srd-x.srd(1).json" and "srd-x.srd (1).json" count as well as "srd-x.srd.json".
+    private static readonly System.Text.RegularExpressions.Regex ExportName =
+        new(@"\.srd\s*(\(\d+\))?\.json$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
     private static IEnumerable<string> SafeFiles(string folder)
     {
-        try { return Directory.Exists(folder) ? Directory.GetFiles(folder, "*.srd.json") : Array.Empty<string>(); }
+        try { return Directory.Exists(folder) ? Directory.GetFiles(folder, "*.json").Where(f => ExportName.IsMatch(f)).ToArray() : Array.Empty<string>(); }
         catch (Exception) { return Array.Empty<string>(); }
     }
+
+    // Where Windows really keeps Downloads. It can be moved (here it is D:\Downloads), so %UserProfile%\Downloads
+    // may be an old empty folder. SHGetKnownFolderPath is the Windows call that answers this; FOLDERID_Downloads is its id.
+    public static string DownloadsFolder
+    {
+        get
+        {
+            try
+            {
+                var id = new Guid("374DE290-123F-4565-9164-39C4925E467B");
+                if (SHGetKnownFolderPath(ref id, 0, IntPtr.Zero, out IntPtr p) == 0)
+                {
+                    string? path = System.Runtime.InteropServices.Marshal.PtrToStringUni(p);
+                    System.Runtime.InteropServices.Marshal.FreeCoTaskMem(p);
+                    if (!string.IsNullOrEmpty(path)) return path;
+                }
+            }
+            catch (Exception) { /* fall back below */ }
+            return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("shell32.dll")]
+    private static extern int SHGetKnownFolderPath(ref Guid id, uint flags, IntPtr token, out IntPtr path);
 
     // Read one export once per write time. A file that fails to load (still downloading, or not a thread) is tried again next scan.
     private Item? Read(string file)

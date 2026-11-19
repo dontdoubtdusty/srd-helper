@@ -10,7 +10,7 @@ using Image = Raylib_cs.Image;
 // (command line, drag and drop, the Open dialog), and runs the optional screenshot test script.
 public sealed class DeskApp
 {
-    public const string Version = "Kettle 0.5.0";
+    public const string Version = "Kettle 0.7.1";
 
     private const float TopH = 44f;
     private const float ListW = 290f;
@@ -26,8 +26,9 @@ public sealed class DeskApp
     public unsafe void Run()
     {
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
-        Raylib.InitWindow(1500, 900, Version);
+        Raylib.InitWindow(WindowW, WindowH, Version);
         Raylib.SetWindowMinSize(1000, 600);
+        FitWindow();
         Assets.LoadMascot();
         Raylib.SetExitKey(KeyboardKey.Null);    // Esc must not close the app
         Raylib.SetTargetFPS(60);
@@ -54,6 +55,7 @@ public sealed class DeskApp
             if (ShotPath != null && frame == 3 && Script != null) RunScript(Script);
             if (Raylib.IsKeyPressed(KeyboardKey.F1)) desk.ShowGuide = !desk.ShowGuide;
             HandleUndoKeys();
+            SnapWindow(Raylib.GetFrameTime());
             ApplyLook();
             RunTestClick(frame);
 
@@ -75,6 +77,37 @@ public sealed class DeskApp
 
         rlImGui.Shutdown();
         Raylib.CloseWindow();
+    }
+
+    // The one size the window has when it is not maximised; the panels are laid out for it.
+    private const int WindowW = 1500, WindowH = 900;
+    private float snapWait = -1f;    // seconds until a resized window snaps back; below 0 when nothing is pending
+
+    // The fixed window size, shrunk to fit a monitor too small for it (taskbar and title bar left free).
+    private static (int w, int h) FittedSize()
+    {
+        int m = Raylib.GetCurrentMonitor();
+        int w = Math.Min(WindowW, Raylib.GetMonitorWidth(m) - 40);
+        int h = Math.Min(WindowH, Raylib.GetMonitorHeight(m) - 110);
+        return (Math.Max(1000, w), Math.Max(600, h));
+    }
+
+    // Put the window at the fixed size.
+    private static void FitWindow()
+    {
+        var (w, h) = FittedSize();
+        if (Raylib.GetScreenWidth() != w || Raylib.GetScreenHeight() != h) Raylib.SetWindowSize(w, h);
+    }
+
+    // Free resizing is not supported: a short moment after the window stops changing size it snaps back
+    // to the fixed size. Maximised (or minimised) is left alone, and restoring brings back the fixed size.
+    private void SnapWindow(float dt)
+    {
+        if (Raylib.IsWindowMaximized() || Raylib.IsWindowMinimized()) { snapWait = -1f; return; }
+        if (Raylib.IsWindowResized()) { snapWait = 0.25f; return; }
+        if (snapWait < 0) return;
+        snapWait -= dt;
+        if (snapWait <= 0) { snapWait = -1f; FitWindow(); }
     }
 
     // Alt+Z undoes the last draft change, Alt+Shift+Z redoes it. Ignored while typing in a text box.
@@ -106,9 +139,11 @@ public sealed class DeskApp
         float mainW = w - draftW;
 
         TopBarPanel.Draw(desk, w, topH);
+        // The start screen (no thread open) has no console, so the list and the start page run to the bottom.
+        if (desk.Data == null) consoleH = 0f;
         TreeListPanel.Draw(desk, new Vector2(0, topH), new Vector2(listW, bodyH - consoleH));
         DetailPanel.Draw(desk, new Vector2(listW, topH), new Vector2(mainW - listW, bodyH - consoleH));
-        ConsolePanel.Draw(desk, new Vector2(0, h - consoleH), new Vector2(mainW, consoleH));
+        if (consoleH > 0f) ConsolePanel.Draw(desk, new Vector2(0, h - consoleH), new Vector2(mainW, consoleH));
         DraftPanel.Draw(desk, new Vector2(mainW, topH), new Vector2(draftW, bodyH));
         OptionsPanel.Draw(desk, w, h);
         InboxPanel.DrawPopup(desk, w);
@@ -138,7 +173,7 @@ public sealed class DeskApp
         {
             Title = "Open a thread file",
             Filter = "SRD thread files (*.srd.json;*.json)|*.srd.json;*.json|All files (*.*)|*.*",
-            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads",
+            InitialDirectory = Inbox.DownloadsFolder,
         };
         if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK) desk.Open(dialog.FileName);
     }
@@ -150,7 +185,7 @@ public sealed class DeskApp
         {
             Description = "Pick a folder to watch for thread exports",
             UseDescriptionForTitle = true,
-            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads",
+            InitialDirectory = Inbox.DownloadsFolder,
         };
         if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK) desk.AddWatchFolder(dialog.SelectedPath);
     }
@@ -208,6 +243,9 @@ public sealed class DeskApp
                 case "source": desk.SourceTab = true; break;
                 case "click": clickX = n; int.TryParse(parts.Length > 2 ? parts[2] : "", out clickY); break;
                 case "altz": pressAltZ = true; break;
+                case "droplast": { Block? cb = desk.Draft.Blocks.LastOrDefault(x => x.Kind == "chain"); if (cb != null) desk.SetStatus(desk.Draft.DropLast(cb)); break; }
+                case "posted": desk.TogglePosted(); break;
+                case "home": desk.CloseThread(); break;
                 case "undo": desk.UndoDraft(); break;
                 case "redo": desk.RedoDraft(); break;
                 case "options": desk.OpenOptions = true; break;

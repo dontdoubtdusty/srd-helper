@@ -54,13 +54,17 @@ public static class DetailPanel
         bool accepted = d.TreeAccepted(d.SelectedTree);
         if (accepted) { ImGui.SameLine(0, 6); Ui.Chip("accepted", Theme.Ok); }
 
-        string skipLabel = skipped ? "Unskip tree" : "Skip tree";
-        string acceptLabel = accepted ? "Unaccept tree" : "Accept tree";
+        string skipLabel = skipped ? "Unskip" : "Skip";
+        string acceptLabel = accepted ? "Unaccept" : "Accept";
         float pad = ImGui.GetStyle().FramePadding.X * 2f, gap = ImGui.GetStyle().ItemSpacing.X;
         float skipW = ImGui.CalcTextSize(skipLabel).X + pad + gap + ImGui.CalcTextSize(acceptLabel).X + pad;
         float unfoldW = ImGui.CalcTextSize("Unfold all").X + pad;
         float foldW = ImGui.CalcTextSize("Fold replies").X + pad;
-        ImGui.SameLine(ImGui.GetWindowWidth() - 22f - skipW - unfoldW - foldW - gap * 2f);
+        // The buttons sit at the right; when the chips reach that far they move to a row of their own.
+        ImGui.SameLine(0, 0);
+        float buttonsX = ImGui.GetWindowWidth() - 22f - skipW - unfoldW - foldW - gap * 2f;
+        if (ImGui.GetCursorPosX() + 12f > buttonsX) { ImGui.NewLine(); ImGui.Dummy(new Vector2(0, 0)); }
+        ImGui.SameLine(buttonsX);
         if (ImGui.Button(acceptLabel)) d.ToggleTreeAccept(d.SelectedTree);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Mark this tree as a good find (its hot spots too). Goes into the calibration labels.");
         ImGui.SameLine();
@@ -74,7 +78,16 @@ public static class DetailPanel
     }
 
     // The empty state: how to open a thread, plus the recent files.
+    // It sits in its own scrolling area, so a long list of new threads and recent files can be scrolled.
     private static void DrawWelcome(Desk d)
+    {
+        ImGui.BeginChild("welcome", Vector2.Zero, ImGuiChildFlags.None, ImGuiWindowFlags.None);
+        DrawWelcomeBody(d);
+        ImGui.Dummy(new Vector2(0, 20));
+        ImGui.EndChild();
+    }
+
+    private static void DrawWelcomeBody(Desk d)
     {
         ImGui.Dummy(new Vector2(0, 40));
         Assets.DrawMascot(96f);

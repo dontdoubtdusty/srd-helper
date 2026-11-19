@@ -93,6 +93,8 @@ public class Draft
     public List<string> Skipped { get; set; } = new();
     // The opposite: trees and hot spots you marked as good finds, keyed the same way. Counts toward the calibration labels.
     public List<string> Accepted { get; set; } = new();
+    // The whole thread became a real SRD post. Weighs more than a plain drama label when measure.js checks the meter.
+    public bool Posted { get; set; }
     // Title of the post you are writing (not part of the body markdown, copied with its own button).
     public string Title { get; set; } = "";
     private string? path;
@@ -103,14 +105,23 @@ public class Draft
     public bool CanUndo => undoStack.Count > 0;
     public bool CanRedo => redoStack.Count > 0;
 
-    private record State(List<Block> Blocks, List<string> Skipped, List<string>? Accepted);
-    private string Snapshot() => JsonSerializer.Serialize(new State(Blocks, Skipped, Accepted));
+    private record State(List<Block> Blocks, List<string> Skipped, List<string>? Accepted, bool Posted = false);
+    private string Snapshot() => JsonSerializer.Serialize(new State(Blocks, Skipped, Accepted, Posted));
     private void Restore(string snap)
     {
         State? s = JsonSerializer.Deserialize<State>(snap);
         Blocks = s?.Blocks ?? new();
         Skipped = s?.Skipped ?? new();
         Accepted = s?.Accepted ?? new();
+        Posted = s?.Posted ?? false;
+    }
+
+    // Mark the whole thread as one that became a real SRD post, or take the mark off again.
+    public void TogglePosted()
+    {
+        Checkpoint();
+        Posted = !Posted;
+        Save();
     }
 
     public bool IsSkipped(string link) => !string.IsNullOrEmpty(link) && Skipped.Contains(link);
@@ -304,6 +315,38 @@ public class Draft
         Rebuild(b);
         Save();
         return null;
+    }
+
+    // Make one quote of a chain a link to its comment, or a plain quote again, then rebuild the chain's markdown.
+    // The comment the chain replies to stays plain. Returns a message for the status line.
+    public string ToggleLink(Block b, int quote)
+    {
+        if (b.Who == null || b.Edited || quote < 0 || quote >= b.Who.Count) return "Can't change links in a chain edited by hand";
+        Who w = b.Who[quote];
+        if (w.C) return "The comment a chain replies to stays plain";
+        if (string.IsNullOrEmpty(w.U)) return "This comment has no link";
+        Checkpoint();
+        w.K = !w.K;
+        Rebuild(b);
+        Save();
+        return w.K ? "Quote linked" : "Quote unlinked";
+    }
+
+    // Remove the last quote of a chain, so a chain that runs on too long can end earlier. At least one quoted comment
+    // (besides the replying-to comment) always stays. When the removed quote was the only link, the new last quote
+    // becomes the link, as when the chain was added. Returns a message for the status line.
+    public string DropLast(Block b)
+    {
+        if (b.Who == null || b.Edited) return "Can't shorten a chain edited by hand";
+        if (b.Who.Count(w => !w.C) < 2) return "A chain keeps at least one quote";
+        Checkpoint();
+        Who gone = b.Who[^1];
+        b.Who.RemoveAt(b.Who.Count - 1);
+        Who last = b.Who[^1];
+        if (gone.K && !b.Who.Any(w => w.K) && !last.C && !string.IsNullOrEmpty(last.U)) last.K = true;
+        Rebuild(b);
+        Save();
+        return "Last quote removed";
     }
 
     // Put every cut sentence of a quote back.

@@ -329,9 +329,29 @@ public static class DraftPanel
         }
     }
 
-    // On a quote's badge row: "trim" to open trim mode; while open, "done" and (when something is cut) "keep all".
+    // On a quote's badge row: "link" or "unlink" to switch the quote between a link and a plain quote (not on the
+    // replying-to comment); "trim" to open trim mode; while open, "done" and (when something is cut) "keep all";
+    // on the last quote, "drop" to end the chain one comment earlier (while another quoted comment remains).
     private static void DrawTrimControls(Desk d, Block b, int qi, string key, bool trimming)
     {
+        Who w = b.Who![qi];
+        if (qi == b.Who.Count - 1 && b.Who.Count(x => !x.C) > 1)
+        {
+            ImGui.SameLine(0, 10);
+            if (Ui.Link("drop##dr" + qi))
+            {
+                d.Trimming.Remove(key);
+                d.SetStatus(d.Draft.DropLast(b));
+                return;
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Remove this last comment from the chain (Alt+Z brings it back)");
+        }
+        if (!w.C && !string.IsNullOrEmpty(w.U))
+        {
+            ImGui.SameLine(0, 10);
+            if (Ui.Link((w.K ? "unlink" : "link") + "##k" + qi)) d.SetStatus(d.Draft.ToggleLink(b, qi));
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(w.K ? "Make this a plain quote again" : "Make this quote a link to the comment on Reddit");
+        }
         ImGui.SameLine(0, 10);
         if (!trimming)
         {

@@ -41,13 +41,16 @@ public static class TopBarPanel
         float pad = ImGui.GetStyle().FramePadding.X * 2f;
         float openW = ImGui.CalcTextSize("Open file...").X + pad;
         float origW = ImGui.CalcTextSize("Original thread").X + pad;
+        string postedLabel = d.Draft.Posted ? "Posted" : "Mark posted";
+        float postedW = ImGui.CalcTextSize(postedLabel).X + pad;
         float guideW = ImGui.CalcTextSize("Guide").X + pad;
         float optW = ImGui.CalcTextSize("Options").X + pad;
         // "N new" only while a thread is open; the start screen lists them itself.
         string newLabel = d.Inbox.Items.Count + " new";
         bool showNew = data != null && d.Inbox.Items.Count > 0;
         float newW = showNew ? ImGui.CalcTextSize(newLabel).X + pad + 8f : 0f;
-        float rightX = w - 14f - openW - (data != null ? origW + 8f : 0f) - guideW - optW - 16f - newW;
+        float homeW = ImGui.CalcTextSize("Home").X + pad;
+        float rightX = w - 14f - openW - (data != null ? homeW + origW + postedW + 24f : 0f) - guideW - optW - 16f - newW;
         float statusW = 230f;
         float titleW = Math.Max(60f, rightX - statusW - ImGui.GetCursorPosX() - 10f);
         ImGui.AlignTextToFramePadding();
@@ -72,11 +75,30 @@ public static class TopBarPanel
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("New thread exports in your watched folders");
             ImGui.SameLine();
         }
+        // Back to the start screen (recent files, new threads); the draft stays saved.
+        if (data != null)
+        {
+            if (ImGui.Button("Home")) d.CloseThread();
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Close this thread and go back to the start screen (the draft is kept)");
+            ImGui.SameLine();
+        }
         if (ImGui.Button("Open file...")) d.WantOpenDialog = true;
         if (data != null)
         {
+            // Marks the whole thread as one that became a real SRD post (green while set; click again to take it off).
             ImGui.SameLine();
+            bool posted = d.Draft.Posted;
+            if (posted) ImGui.PushStyleColor(ImGuiCol.Button, Theme.WithAlpha(Theme.Ok, 0.45f));
+            if (ImGui.Button(postedLabel)) d.TogglePosted();
+            if (posted) ImGui.PopStyleColor();
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(posted
+                ? "This thread became a real SRD post. Click to take the mark off."
+                : "Mark this thread as one that became a real SRD post.\nmeasure.js weighs posted threads more than plain drama labels.");
+            ImGui.SameLine();
+            // Left click opens the thread on Reddit; right click copies its link.
             if (ImGui.Button("Original thread")) d.OpenUrl(data.ThreadUrl);
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right)) { ImGui.SetClipboardText(data.ThreadUrl); d.SetStatus("Thread link copied"); }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open the thread on Reddit (right click: copy the link)");
         }
         ImGui.SameLine();
         if (ImGui.Button("Guide")) d.ShowGuide = !d.ShowGuide;
